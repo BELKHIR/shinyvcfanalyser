@@ -1,0 +1,201 @@
+Model	lib	help
+SC2N	nu1	Size of population 1 after split.
+SC2N	nu2	Size of population 2 after split.
+SC2N	m12	Migration from pop 2 to pop 1.
+SC2N	m21	Migration from pop 1 to pop 2.
+SC2N	Ts	Duration of divergence in isolation.
+SC2N	Ti	Duration of divergence with migration.
+SC2N	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+SC2N	bf	Background factor that defines to which extent Ne is reduced.
+SC2N	O	Fraction of SNPs accurately orientated.
+SIexp	nu1e	Size of population 1 after split.
+SIexp	nu1	Size of population 1 after exponential size change.
+SIexp	nu2e	Size of population 2 after split.
+SIexp	nu2	Size of population 2 after exponential size change.
+SIexp	Ts	Duration of divergence in isolation.
+SIexp	Ti	Duration of divergence in isolation with pop1
+SIexp	O	Fraction of SNPs accurately orientated.
+SI	nu1	Size of population 1 after split.
+SI	nu2	Size of population 2 after split.
+SI	Ts	Duration of divergence in isolation.
+SI	O	Fraction of SNPs accurately orientated.
+AMexp	nu1e	Size of population 1 after split.
+AMexp	nu1	Size of population 1 after exponential size change.
+AMexp	nu2e	Size of population 2 after split.
+AMexp	nu2	Size of population 2 after exponential size change.
+AMexp	m12	Migration from pop 2 to pop 1.
+AMexp	m21	Migration from pop 1 to pop 2.
+AMexp	Ts	Duration of divergence with migration.
+AMexp	Ti	Duration of divergence in isolation with pop1
+AMexp	O	Fraction of SNPs accurately orientated.
+SC2N2M	nu1	Size of population 1 after split.
+SC2N2M	nu2	Size of population 2 after split.
+SC2N2M	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+SC2N2M	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+SC2N2M	Ts	Duration of divergence in isolation.
+SC2N2M	Ti	Duration of divergence with migration.
+SC2N2M	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+SC2N2M	bf	Background factor that defines to which extent Ne is reduced.
+SC2N2M	P	Fraction of the genome evolving neutrally.
+SC2N2M	O	Fraction of SNPs accurately orientated.
+SI2N	nu1	Size of population 1 after split.
+SI2N	nu2	Size of population 2 after split.
+SI2N	Ts	Duration of divergence in isolation.
+SI2N	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+SI2N	bf	Background factor that defines to which extent Ne is reduced.
+SI2N	O	Fraction of SNPs accurately orientated.
+IM2M2P	nu1	Size of population 1 after split.
+IM2M2P	nu2	Size of population 2 after split.
+IM2M2P	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+IM2M2P	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+IM2M2P	Ts	Duration of divergence with migration.
+IM2M2P	P1	Fraction of the genome evolving neutrally in population 1.
+IM2M2P	P2	Fraction of the genome evolving neutrally in population 2.
+IM2M2P	O	Fraction of SNPs accurately orientated.
+IMexp	nu1e	Size of population 1 after split.
+IMexp	nu1	Size of population 1 after exponential size change.
+IMexp	nu2e	Size of population 2 after split.
+IMexp	nu2	Size of population 2 after exponential size change.
+IMexp	m12	Migration from pop 2 to pop 1.
+IMexp	m21	Migration from pop 1 to pop 2.
+IMexp	Ts	Duration of divergence with migration.
+IMexp	Ti	Duration of divergence with migration with pop1
+IMexp	O	Fraction of SNPs accurately orientated.
+SC	nu1	Size of population 1 after split.
+SC	nu2	Size of population 2 after split.
+SC	m12	Migration from pop 2 to pop 1.
+SC	m21	Migration from pop 1 to pop 2.
+SC	Ts	Duration of divergence in isolation.
+SC	Ti	Duration of divergence with migration.
+SC	O	Fraction of SNPs accurately orientated.
+IM2N2M	nu1	Size of population 1 after split.
+IM2N2M	nu2	Size of population 2 after split.
+IM2N2M	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+IM2N2M	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+IM2N2M	Ts	Duration of divergence with migration.
+IM2N2M	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+IM2N2M	bf	Background factor that defines to which extent Ne is reduced.
+IM2N2M	P	Fraction of the genome evolving neutrally.
+IM2N2M	O	Fraction of SNPs accurately orientated.
+IM	nu1	Size of population 1 after split.
+IM	nu2	Size of population 2 after split.
+IM	m12	Migration from pop 2 to pop 1.
+IM	m21	Migration from pop 1 to pop 2.
+IM	Ts	Duration of divergence with migration.
+IM	O	Fraction of SNPs accurately orientated.
+AM2M2P	nu1	Size of population 1 after split.
+AM2M2P	nu2	Size of population 2 after split.
+AM2M2P	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+AM2M2P	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+AM2M2P	Ts	Duration of divergence with migration.
+AM2M2P	Ti	Duration of divergence in isolation.
+AM2M2P	P1	Fraction of the genome evolving neutrally in population 1.
+AM2M2P	P2	Fraction of the genome evolving neutrally in population 2.
+AM2M2P	O	Fraction of SNPs accurately orientated.
+IM2M	nu1	Size of population 1 after split.
+IM2M	nu2	Size of population 2 after split.
+IM2M	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+IM2M	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+IM2M	Ts	Duration of divergence with migration.
+IM2M	P	Fraction of the genome evolving neutrally.
+IM2M	O	Fraction of SNPs accurately orientated.
+IM2N	nu1	Size of population 1 after split.
+IM2N	nu2	Size of population 2 after split.
+IM2N	m12	Migration from pop 2 to pop 1.
+IM2N	m21	Migration from pop 1 to pop 2.
+IM2N	Ts	Duration of divergence with migration.
+IM2N	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+IM2N	bf	Background factor that defines to which extent Ne is reduced.
+IM2N	O	Fraction of SNPs accurately orientated.
+AM2N2M	nu1	Size of population 1 after split.
+AM2N2M	nu2	Size of population 2 after split.
+AM2N2M	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+AM2N2M	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+AM2N2M	Ts	Duration of divergence with migration.
+AM2N2M	Ti	Duration of divergence in isolation.
+AM2N2M	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+AM2N2M	bf	Background factor that defines to which extent Ne is reduced.
+AM2N2M	P	Fraction of the genome evolving neutrally.
+AM2N2M	O	Fraction of SNPs accurately orientated.
+AM2M	nu1	Size of population 1 after split.
+AM2M	nu2	Size of population 2 after split.
+AM2M	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+AM2M	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+AM2M	Ts	Duration of divergence with migration.
+AM2M	Ti	Duration of divergence in isolation.
+AM2M	P	Fraction of the genome evolving neutrally.
+AM2M	O	Fraction of SNPs accurately orientated.
+SC2N2M2P	nu1	Size of population 1 after split.
+SC2N2M2P	nu2	Size of population 2 after split.
+SC2N2M2P	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+SC2N2M2P	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+SC2N2M2P	Ts	Duration of divergence in isolation.
+SC2N2M2P	Ti	Duration of divergence with migration.
+SC2N2M2P	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+SC2N2M2P	bf	Background factor that defines to which extent Ne is reduced.
+SC2N2M2P	P1	Fraction of the genome evolving neutrally in population 1.
+SC2N2M2P	P2	Fraction of the genome evolving neutrally in population 2.
+SC2N2M2P	O	Fraction of SNPs accurately orientated.
+SCexp	nu1e	Size of population 1 after split.
+SCexp	nu1	Size of population 1 after exponential size change.
+SCexp	nu2e	Size of population 2 after split.
+SCexp	nu2	Size of population 2 after exponential size change.
+SCexp	m12	Migration from pop 2 to pop 1.
+SCexp	m21	Migration from pop 1 to pop 2.
+SCexp	Ts	Duration of divergence in isolation.
+SCexp	Ti	Duration of divergence with migration with pop1
+SCexp	O	Fraction of SNPs accurately orientated.
+AM2N2M2P	nu1	Size of population 1 after split.
+AM2N2M2P	nu2	Size of population 2 after split.
+AM2N2M2P	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+AM2N2M2P	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+AM2N2M2P	Ts	Duration of divergence with migration.
+AM2N2M2P	Ti	Duration of divergence in isolation.
+AM2N2M2P	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+AM2N2M2P	bf	Background factor that defines to which extent Ne is reduced.
+AM2N2M2P	P1	Fraction of the genome evolving neutrally in population 1.
+AM2N2M2P	P2	Fraction of the genome evolving neutrally in population 2.
+AM2N2M2P	O	Fraction of SNPs accurately orientated.
+AM2N	nu1	Size of population 1 after split.
+AM2N	nu2	Size of population 2 after split.
+AM2N	m12	Migration from pop 2 to pop 1.
+AM2N	m21	Migration from pop 1 to pop 2.
+AM2N	Ts	Duration of divergence with migration.
+AM2N	Ti	Duration of divergence in isolation.
+AM2N	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+AM2N	bf	Background factor that defines to which extent Ne is reduced.
+AM2N	O	Fraction of SNPs accurately orientated.
+AM	nu1	Size of population 1 after split.
+AM	nu2	Size of population 2 after split.
+AM	m12	Migration from pop 2 to pop 1.
+AM	m21	Migration from pop 1 to pop 2.
+AM	Ts	Duration of divergence with migration.
+AM	Ti	Duration of divergence in isolation.
+AM	O	Fraction of SNPs accurately orientated.
+SC2M2P	nu1	Size of population 1 after split.
+SC2M2P	nu2	Size of population 2 after split.
+SC2M2P	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+SC2M2P	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+SC2M2P	Ts	Duration of divergence in isolation.
+SC2M2P	Ti	Duration of divergence with migration.
+SC2M2P	P1	Fraction of the genome evolving neutrally in population 1.
+SC2M2P	P2	Fraction of the genome evolving neutrally in population 2.
+SC2M2P	O	Fraction of SNPs accurately orientated.
+SC2M	nu1	Size of population 1 after split.
+SC2M	nu2	Size of population 2 after split.
+SC2M	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+SC2M	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+SC2M	Ts	Duration of divergence in isolation.
+SC2M	Ti	Duration of divergence with migration.
+SC2M	P	Fraction of the genome evolving neutrally.
+SC2M	O	Fraction of SNPs accurately orientated.
+IM2N2M2P	nu1	Size of population 1 after split.
+IM2N2M2P	nu2	Size of population 2 after split.
+IM2N2M2P	m12	Migration from pop 2 to pop 1 in neutral regions. In barrier regions, m12=0.
+IM2N2M2P	m21	Migration from pop 1 to pop 2 in neutral regions. In barrier regions, m21=0.
+IM2N2M2P	Ts	Duration of divergence with migration.
+IM2N2M2P	nr	Fraction of non-recombining regions, i.e. with reduced Ne.
+IM2N2M2P	bf	Background factor that defines to which extent Ne is reduced.
+IM2N2M2P	P1	Fraction of the genome evolving neutrally in population 1.
+IM2N2M2P	P2	Fraction of the genome evolving neutrally in population 2.
+IM2N2M2P	O	Fraction of SNPs accurately orientated.

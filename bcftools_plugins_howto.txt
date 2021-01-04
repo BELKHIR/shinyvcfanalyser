@@ -1,0 +1,11 @@
+
+https://github.com/shiquan/bcftools_plugins
+
+cd bcftools
+exemple compilation d'un plugin dans plugins/
+echo '#define BCFTOOLS_VERSION "1.11-3-gf57920e"' > version.h
+gcc -fPIC -shared -g -Wall -O2 -I. -I../htslib    -o plugins/addadr.so version.c plugins/addadr.c
+
+
+A essayer ?? voir comment est écrit plugins/select.c notament le define _SELECT_MAIN
+gcc -g -O2 -I. -I../htslib -D_SELECT_MAIN -o bcfselect plugins/select.c ../htslib/libhts.a -lz -lm -lbz2 -llzma -lcurl -lm -lz -ldl -lpthread
