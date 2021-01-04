@@ -192,7 +192,6 @@ RUN Rscript -e 'install.packages("shinyWidgets",dependencies=T,Ncpus=8, repos="h
 RUN pip3 install psutil
 RUN mkdir sagApp
 COPY app.R /sagApp/
-COPY heatmap.R /sagApp/
 COPY finalReport.Rmd /sagApp/
 COPY local_Misc.py /sagApp/
 
