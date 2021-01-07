@@ -1525,7 +1525,10 @@ output$logLikPlot <- renderPlot({
    library("data.table")
   # plotting demographic model
   logL = fread(demoModel()$logfile,select=c(1,2),sep=",")
-  ggplot(logL, aes(x=V1, y=V2)) +  geom_line() 
+  logL = cbind(logL, 1:nrow(logL))
+  colnames(logL) = c("cpt","logLikelihood", "Step")
+  
+  ggplot(logL, aes(x=Step, y=logLikelihood)) +  geom_line() 
   })
     
 }
@@ -1548,3 +1551,5 @@ output$logLikPlot <- renderPlot({
 # Zheng X, Levine D, Shen J, Gogarten S, Laurie C, Weir B (2012). "A High-performance Computing Toolset for Relatedness and Principal Component Analysis of SNP Data." Bioinformatics, 28(24), 3326-3328. doi: 10.1093/bioinformatics/bts606.
 
 # James R. Whiting, Josephine R. Paris, Mijke J. van der Zee, Paul J. Parsons, Detlef Weigel, Bonnie A. Fraser. https://doi.org/10.1101/2020.10.14.339333 
+
+# Francis, R. M. (2017). POPHELPER: an R package and web app to analyse and visualize population structure. Molecular Ecology Resources, 17(1), 27-32. DOI: 10.1111/1755-0998.12509

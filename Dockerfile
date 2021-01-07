@@ -96,10 +96,11 @@ RUN git clone https://github.com/vcftools/vcftools.git \
 	RUN Rscript -e 'install.packages("caTools",Ncpus=8, repos="https://cloud.r-project.org/")'
 	RUN Rscript -e 'BiocManager::install("gplots",Ncpus=8, clean=TRUE)'
 	RUN Rscript -e 'BiocManager::install("ggtree",Ncpus=8, clean=TRUE)'
+    RUN apt-get install -y libgit2-dev
 
 	RUN Rscript -e 'install.packages("devtools",Ncpus=8, repos="https://cloud.r-project.org/")'
  	RUN Rscript -e 'devtools::install_github("rstudio/crosstalk", quiet=T)'
-        RUN Rscript -e 'install.packages("httpuv",Ncpus=8, repos="https://cloud.r-project.org/")'
+    RUN Rscript -e 'install.packages("httpuv",Ncpus=8, repos="https://cloud.r-project.org/")'
     RUN Rscript -e 'devtools::install_github("jcheng5/d3scatter", quiet=F)' 
 	RUN Rscript -e 'devtools::install_github("andrewsali/shinycssloaders", quiet=T)'
     
@@ -206,9 +207,10 @@ RUN rm -rf /opt/biotools/dadi
 RUN rm -rf /opt/biotools/moments
 
 #use a local copy of pophelper
-#ADD pophelper /tmp/pophelper
-#RUN Rscript -e 'devtools::install("/tmp/pophelper",Ncpus=8)'
+# ADD pophelper /tmp/pophelper
+# RUN Rscript -e 'devtools::install("/tmp/pophelper",Ncpus=8)'
 
+ADD Demographic-Modelling  /sagApp/Demographic-Modelling
 #RUN echo 'ServerName 127.0.0.1' >> /etc/apache2/apache2.conf
 
 EXPOSE 3838
