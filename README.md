@@ -1,7 +1,7 @@
 # ShinyVCFMultiSampleanalyser
 This tool is aimed at helping to analyse small to medium vcf files of genotyped individuals.
 
-If a file mapping individuals to populations is provided, Most analyzes plots will be decorated with population info and pairwise Fst and Faststructure can be conducted.
+If a file mapping individuals to populations is provided, most analyses plots will be decorated with population info, and pairwise Fst and Faststructure can be conducted.
 
 # download or unzip the app files
 
@@ -28,7 +28,7 @@ DOCK_VOLUME="--mount type=bind,src=/home/khalid/projets/workspace/testData,dst=/
 
 sudo docker run -d -p 9090:3838 $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser
 
-The app is now accesible via a browser at : http://127.0.0.1:9090
+The app is now accessible via a browser at : http://127.0.0.1:9090
 
 # The running container can be alternatively accessed in command line this way :
 
@@ -49,7 +49,7 @@ Rscript -e 'rmarkdown::render("finalReport.Rmd",output_format ="pdf_document", p
 
 This will generate a file named finalReport.pdf .  
 
-To get html output set output_format ="html_document"  in the command line.  
+To get html output set output_format ="html_document" in the command line.  
 
 
 You can set some parameters by editing the file finalReport.Rmd and change one or several options in the params section :  
