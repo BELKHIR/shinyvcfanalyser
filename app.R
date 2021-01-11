@@ -773,6 +773,15 @@ Heatmap(genoWindow()$geno_matrix, name = "Genotypes", row_names_side = "left", t
 
 })
 
+# See also Plink : plink --file data --cluster-missing 
+# Systematic batch effects that induce missingness in parts of the sample will induce correlation between
+# the patterns of missing data that different individuals display. One approach to detecting correlation 
+# in these patterns, that might possibly idenity such biases, is to cluster individuals based on their identity-by-missingness (IBM). 
+# This approach use exactly the same procedure as the IBS clustering for population stratification, except the distance between 
+# two individuals is based not on which (non-missing) allele they have at each site, but rather the proportion of sites for which 
+# two individuals are both missing the same genotype. 
+# see also the grur package 
+# one can also run a ape::pcoa on the pairwise missingness distances and use ape::biplot
 output$missingPlot <- renderPlot({
   if (is.null(genoWindow()) ) return(NULL)
 

@@ -58,6 +58,8 @@ library(dplyr)
 library(kableExtra)
 library(pander)
 library(ggtree)
+library(ComplexHeatmap)
+
 knitr::opts_chunk$set(
   comment = '', fig.width = 8, fig.height = 8, echo =FALSE
 )
@@ -204,14 +206,25 @@ names(pop_color1) = sample.id1
 titre = paste0("Genotypes Contig: ", chr, " start: ", params$start_geno_plot, " snps: ", length(snps))
 titre = paste0("Contig: ", chr,  " snps: ", ncol(geno_matrix), " 1st pos: ", firstSnpPos, " last pos:", lastSnpPos )
 
-source("heatmap.R") 
 
+#heatmap.new(geno_matrix, Rowv=TRUE, Colv=TRUE, main=titre,RowSideColors=pop_color1, margins=c(5,1,0), scale="none", verbose=F,col = my_palette)
+#par(xpd=TRUE)
+#leg1=legend(x="bottomleft", inset=c(0,0.95), legend= keylabels,  fill=c(my_palette,"#FFFFFF"), title="Genotypes")
+#leg2=legend(x="bottom" ,inset=c(0,0.95) , legend= names(popc), title="Populations",  fill=popc, ncol = 5)
 
-heatmap.new(geno_matrix, Rowv=TRUE, Colv=TRUE, main=titre,RowSideColors=pop_color1, margins=c(5,1,0), scale="none", verbose=F,col = my_palette)
-par(xpd=TRUE)
-leg1=legend(x="bottomleft", inset=c(0,0.95), legend= keylabels,  fill=c(my_palette,"#FFFFFF"), title="Genotypes")
-leg2=legend(x="bottom" ,inset=c(0,0.95) , legend= names(popc), title="Populations",  fill=popc, ncol = 5)
+ddc = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
+names(ddc)=""
 
+ddr = apply(geno_matrix, 1, function(snp) sum(! is.na(snp)))
+names(ddr)=""
+
+column_ha = HeatmapAnnotation(nonmissingsamples = anno_barplot(ddc) )
+row_ha    = rowAnnotation( nonmissingsnps = anno_barplot(ddr))
+pops_ha   = rowAnnotation(pops= pop_code1, col=list(pops=popc))
+
+my_palette=c(my_palette,"#FFFFFF")
+
+Heatmap(geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation = column_ha, right_annotation = row_ha, left_annotation =pops_ha ,show_column_dend = FALSE, show_row_dend = FALSE, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names=FALSE, column_title=titre, na_col = "white", col=structure(  my_palette,  names=c(2,1,0,NA)), row_names_gp = gpar(fontsize = 8) )#genoWindow()$keylabels))
 
 
 ```
@@ -460,7 +473,7 @@ files <- Sys.glob(paste0(filtredfile,'-fastStr*.meanQ') )
       {
       nopops = F 
       colnames(popGroups) = c('Indivs','Pops')
-      p = plotQ(qlist,returnplot=T, exportplot=F,quiet=T,basesize=11, grplab=popGroups[,2,drop=FALSE],grplabsize=2,linesize=0.8,pointsize=3, showindlab=T,useindlab=T, ordergrp=T, indlabangle=90,indlabvjust=1, height=haut, width=120, indlabsize=3, divsize=2, spbgcol="grey", imgoutput="join", panelspacer=0.4, splab=paste0("K=",sapply(qlist,ncol)),splabsize=20 , clustercol=kelly,barbordersize=0.2 , barbordercolour='white', showtitle=T, titlesize=6,titlelab= titre)
+      p = plotQ(qlist,returnplot=T, exportplot=F,basesize=11, grplab=popGroups[,2,drop=FALSE],grplabsize=2,linesize=0.8,pointsize=3, showindlab=T,useindlab=T, ordergrp=T, indlabangle=90,indlabvjust=1, height=haut, width=120, indlabsize=3, divsize=2, spbgcol="grey", imgoutput="join", panelspacer=0.4, splab=paste0("K=",sapply(qlist,ncol)),splabsize=20 , clustercol=kelly,barbordersize=0.2 , barbordercolour='white', showtitle=T, titlesize=6,titlelab= titre)
       } 
       else 
       {
@@ -640,6 +653,7 @@ import sys
 sys.path.append('./momentsmodels/')
 
 import moments_models_2pop
+import moments.moments_inference_dualanneal
 from inspect import getmembers, isfunction
 
 func = dict(getmembers(moments_models_2pop, isfunction))[Model]

@@ -143,7 +143,7 @@ RUN apt-get install -y libatlas-base-dev
 # && cp plink /opt/biotools/bin \
 # && cd ../.. \
 # && rm -rf plink-ng
-
+RUN apt-get update
 RUN apt-get install -y imagemagick 
 RUN apt-get install -y python-backports.functools-lru-cache
 
@@ -158,7 +158,7 @@ RUN sed -i 's|10/2.54|14/2.54|' /usr/local/bin/plot-vcfstats
 RUN sed -i 's|window_len/2|window_len//2|g' /usr/local/bin/plot-vcfstats
 
 RUN apt-get update && apt-get install -y python3
-RUN apt-get install -y python3-pip python3-numpy python3-scipy
+RUN apt-get install -y python3-pip python3-numpy python3-scipy python3-matplotlib
 
 RUN cd /opt/biotools && git clone https://bitbucket.org/gutenkunstlab/dadi.git \
 && cd dadi && python3 setup.py install
@@ -183,7 +183,7 @@ RUN cp /root/bin/phantomjs /usr/local/bin/
 #RUN Rscript -e 'BiocManager::install(c("SeqArray", "Rsamtools"))'
 #Por
 RUN Rscript -e 'library("devtools"); install_github("zhengxwen/gdsfmt"); install_github("zhengxwen/SeqArray")'
-RUN Rscript -e "devtools::install_github('royfrancis/pophelper', Ncpus=8)"
+RUN Rscript -e "devtools::install_github('royfrancis/pophelper', Ncpus=8, upgrade ='never')"
 RUN Rscript -e 'install.packages("pheatmap",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 
 RUN apt-get install libxt-dev
@@ -210,7 +210,9 @@ RUN rm -rf /opt/biotools/moments
 # ADD pophelper /tmp/pophelper
 # RUN Rscript -e 'devtools::install("/tmp/pophelper",Ncpus=8)'
 
-ADD Demographic-Modelling  /sagApp/Demographic-Modelling
+#ADD Demographic-Modelling  /sagApp/Demographic-Modelling
+RUN apt-get install -y pandoc
+RUN apt-get install -y python3-pandas
 #RUN echo 'ServerName 127.0.0.1' >> /etc/apache2/apache2.conf
 
 EXPOSE 3838
