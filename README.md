@@ -1,51 +1,54 @@
 # ShinyVCFMultiSampleanalyser
 This tool is aimed at helping to analyse small to medium vcf files of genotyped individuals.
 
-If a file mapping individuals to populations is provided, most analyses plots will be decorated with population info, and pairwise Fst and Faststructure can be conducted.
+If a file mapping individuals to populations is provided, most plots will be decorated with population info, and pairwise Fst as well as Faststructure can be conducted.
 
-# download or unzip the app files
+An example of vcf file and popmap file can be found in XXXX.
 
- git clone https://gitlab.mbb.univ-montp2.fr/khalid/shinyvcfmultisampleanalyser.git 
+## Download or unzip the app files
+
+ `git clone https://gitlab.mbb.univ-montp2.fr/khalid/shinyvcfmultisampleanalyser.git`
  
- then  
- cd shinyvcfmultisampleanalyser  
+ then
+ 
+ `cd shinyvcfmultisampleanalyser`
 
-# if docker is not installed check howto do  
+## If docker is not installed check how to do  
   https://docs.docker.com/engine/install/
 
-# To build (to be done only once )
-sudo docker build -t shinyvcfmultisampleanalyser .
+## To build (to be done only once)
+`sudo docker build -t shinyvcfmultisampleanalyser .`
 
-# Now you have to bind directories from your system to directories inside the container
+## Now you have to bind directories from your system to directories inside the container
   
 bind local directories to /Data and /Results in the container
   
 e.g. I want to share my files in /home/khalid/projets/workspace/testData and /tmp/Results
   
-DOCK_VOLUME="--mount type=bind,src=/home/khalid/projets/workspace/testData,dst=/Data --mount type=bind,src=/tmp/Results,dst=/Results"
+`DOCK_VOLUME="--mount type=bind,src=/home/khalid/projets/workspace/testData,dst=/Data --mount type=bind,src=/tmp/Results,dst=/Results"`
   
-# To run with binding and mapping host tcp port 9090 to port 3838 in the container (named vcfmultisample)
+## To run with binding and mapping host tcp port 9090 to port 3838 in the container (named vcfmultisample)
 
-sudo docker run -d -p 9090:3838 $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser
+`sudo docker run -d -p 9090:3838 $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser`
 
 The app is now accessible via a browser at : http://127.0.0.1:9090
 
-# The running container can be alternatively accessed in command line this way :
+## The running container can be alternatively accessed in command line this way :
 
-sudo docker exec -i -t  vcfmultisample /bin/bash
+`sudo docker exec -i -t  vcfmultisample /bin/bash`
 
 This will open a bash console inside the container.  
 Some binaries are installed in /opt/biotools  
 
-# Generate a report from command line
+## Generate a report from command line
 
-cd /sagApp/  
+`cd /sagApp/`
 
 in this example  we want to generate a pdf/html report for a VCF file located in /Data/snps.vcf.gz and its population info in /Data/popmap.txt  
 
 This will be run with default parameters :  
 
-Rscript -e 'rmarkdown::render("finalReport.Rmd",output_format ="pdf_document", params = list(vcf="/Data/snps.vcf.gz", popMap="/Data/popmap.txt") )'
+`Rscript -e 'rmarkdown::render("finalReport.Rmd",output_format ="pdf_document", params = list(vcf="/Data/snps.vcf.gz", popMap="/Data/popmap.txt") )'`
 
 This will generate a file named finalReport.pdf .  
 
@@ -70,4 +73,3 @@ params:
     optiMethod: "optimize_log"  
     palette: "Set3"  
     seed: 4321  
-
