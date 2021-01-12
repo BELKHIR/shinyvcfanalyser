@@ -1562,3 +1562,5 @@ output$logLikPlot <- renderPlot({
 # James R. Whiting, Josephine R. Paris, Mijke J. van der Zee, Paul J. Parsons, Detlef Weigel, Bonnie A. Fraser. https://doi.org/10.1101/2020.10.14.339333 
 
 # Francis, R. M. (2017). POPHELPER: an R package and web app to analyse and visualize population structure. Molecular Ecology Resources, 17(1), 27-32. DOI: 10.1111/1755-0998.12509
+
+# example data : https://datadryad.org/stash/dataset/doi:10.5061/dryad.kp11q

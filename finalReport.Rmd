@@ -28,7 +28,7 @@ params:
     demoPOP1: 1
     demoPOP2: 2
     testModel: "IMexp"
-    optiMethod: "dual_anneal"
+    optiMethod: "optimize"#"dual_anneal"
     palette: "Set3"
     seed: 4321
 ---
@@ -504,13 +504,14 @@ if (likelihood > bestlikelihood) {bestlikelihood=likelihood; bestK=K }
 fic = paste0(filtredfile,"-fastStr.",bestK, ".meanQ")
 if  ( file.exists(fic) )  {
         df = read.table(fic, header=F)
-        rownames(df)  = sample.id #ttt
-        
-        colnames(df) =  paste0("cluster", 1:K)
-        
+       
         if ( params$popMap != "") {
           if ((length(sample.id) == length(popmap[,1])) & (length(setdiff(sample.id, popmap[,1])) == 0) )
-          df = cbind( Popmap =popmap[popmap[,1] %in% sample.id,2], df, stringsAsFactors=F)
+          {
+            rownames(df)  = sample.id #ttt
+            colnames(df) =  paste0("cluster", 1:bestK)
+            df = cbind( Popmap =popmap[popmap[,1] %in% sample.id,2], df, stringsAsFactors=F)
+          }
           else print("The list of samples in popMap is different from samples in the VCF. The population info is ignored .")
         }
 }
@@ -734,7 +735,11 @@ if (file.exists(image) ) knitr::include_graphics(image)
 
 ### Anil Raj, Matthew Stephens, and Jonathan K. Pritchard. fastSTRUCTURE: Variational Inference of Population Structure in Large SNP Data Sets , (Genetics) June 2014 197:573-589
 
-### package pophelper : http://www.royfrancis.com/pophelper/articles/index.html
+### package pophelper : http://www.royfrancis.com/pophelper/articles/index.html 
+
+Francis, R. M. (2017). POPHELPER: an R package and web app to analyse and visualize population structure. Molecular Ecology Resources, 17(1), 27-32. DOI: 10.1111/1755-0998.12509
+
+# example data : https://datadryad.org/stash/dataset/doi:10.5061/dryad.kp11q
 
 ### package ape
 
