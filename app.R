@@ -1206,7 +1206,7 @@ plotfastStructpopHelper <- eventReactive(input$runfastStructure, {
         nopops = F 
         colnames(popGroups) = 'Pops'
 
-        p = plotQ(qlist,returnplot=T, exportplot=F,quiet=T,basesize=11, grplab=popGroups,grplabsize=3,linesize=0.8,pointsize=3, showindlab=T,useindlab=T, ordergrp=T, indlabangle=90,indlabvjust=1, height=haut, width=120, indlabsize=3, divsize=2, spbgcol="grey", imgoutput="join", panelspacer=0.4, splab=paste0("K=",sapply(qlist,ncol)),splabsize=20 , clustercol=kelly,barbordersize=0.2 , barbordercolour='white', showtitle=T, titlesize=6,titlelab= titre)
+        p = plotQ(qlist,returnplot=T, exportplot=F,basesize=11, grplab=popGroups,grplabsize=3,linesize=0.8,pointsize=3, showindlab=T,useindlab=T, ordergrp=T, indlabangle=90,indlabvjust=1, height=haut, width=120, indlabsize=3, divsize=2, spbgcol="grey", imgoutput="join", panelspacer=0.4, splab=paste0("K=",sapply(qlist,ncol)),splabsize=20 , clustercol=kelly,barbordersize=0.2 , barbordercolour='white', showtitle=T, titlesize=6,titlelab= titre)
         
       } 
       else 
@@ -1217,7 +1217,7 @@ plotfastStructpopHelper <- eventReactive(input$runfastStructure, {
     }
 
     if (nrow(fics) == 0 | nopops) 
-      p= plotQ(qlist,returnplot=T,exportplot=F,quiet=F,basesize=11,linesize=0.8,pointsize=3,  height=haut, width=140,indlabsize=, divsize=2, spbgcol="grey", imgoutput="join", panelspacer=0.4, splab=paste0("K=",sapply(qlist,ncol)),splabsize=20 , indlabangle=90, indlabvjust=1, showindlab=T,useindlab=T, clustercol=kelly,barbordersize=0.2 , barbordercolour='white', showtitle=T, titlesize=6, titlelab= titre)
+      p= plotQ(qlist,returnplot=T,exportplot=F,basesize=11,linesize=0.8,pointsize=3,  height=haut, width=140,indlabsize=, divsize=2, spbgcol="grey", imgoutput="join", panelspacer=0.4, splab=paste0("K=",sapply(qlist,ncol)),splabsize=20 , indlabangle=90, indlabvjust=1, showindlab=T,useindlab=T, clustercol=kelly,barbordersize=0.2 , barbordercolour='white', showtitle=T, titlesize=6, titlelab= titre)
       
 
   png('/tmp/test.png', width = 1800, height = 800)
