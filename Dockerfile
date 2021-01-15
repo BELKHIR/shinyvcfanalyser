@@ -164,7 +164,8 @@ RUN cd /opt/biotools && git clone https://bitbucket.org/gutenkunstlab/dadi.git \
 && cd dadi && python3 setup.py install
 
 
-
+RUN apt-get install -y pandoc
+RUN apt-get install -y python3-pandas
 
 RUN Rscript -e 'install.packages("reticulate",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 RUN Rscript -e 'install.packages("shinyalert",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
@@ -189,6 +190,7 @@ RUN Rscript -e 'install.packages("pheatmap",dependencies=T,Ncpus=8, repos="https
 RUN apt-get install libxt-dev
 RUN Rscript -e 'library("devtools");install_github("jokergoo/ComplexHeatmap", Ncpus=8)'
 RUN Rscript -e 'install.packages("shinyWidgets",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
+RUN Rscript -e 'install.packages("patchwork",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 
 RUN pip3 install psutil
 RUN mkdir sagApp
@@ -211,8 +213,7 @@ RUN rm -rf /opt/biotools/moments
 # RUN Rscript -e 'devtools::install("/tmp/pophelper",Ncpus=8)'
 
 #ADD Demographic-Modelling  /sagApp/Demographic-Modelling
-RUN apt-get install -y pandoc
-RUN apt-get install -y python3-pandas
+
 #RUN echo 'ServerName 127.0.0.1' >> /etc/apache2/apache2.conf
 
 EXPOSE 3838

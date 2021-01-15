@@ -26,7 +26,7 @@ library(pophelper)
 library(ape)
 library(snapper)
 options(shiny.maxRequestSize=250*1024^2) 
-
+library(patchwork)
 library(reticulate)
 library(shinyWidgets)
 
@@ -137,7 +137,8 @@ body <- dashboardBody(height = '1200px',
        box( width = 7, radioButtons("codage", label = ("How to code genotype"), choices = list("REF/REF=2 REF/ALT=1 ALT/ALT=0" = 1, "REF/REF=0 REF/ALT=1 ALT/ALT=2 (biallelic only!)" = 2), selected = 1, inline=T),solidHeader=TRUE),
       tabBox(width=12,
       tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
-      tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) )
+      tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
+      tabPanel("FstScan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) )
       )
       )
       ),
@@ -773,6 +774,68 @@ Heatmap(genoWindow()$geno_matrix, name = "Genotypes", row_names_side = "left", t
 
 })
 
+output$SnpFstPlot <- renderPlot({
+if (is.null(genoWindow()) ) return(NULL)
+
+  getFST_diploids_fromCodage = function(popnames, SNPDataColumn){  
+  # adapted from OutFLANK for bi-allelic snp only coded as 0 ref/ref, 1 ref/alt, 2 alt/alt
+  #remove missing data for this locus
+  
+  popNameTemp=popnames[!is.na(SNPDataColumn)]
+  snpDataTemp=SNPDataColumn[!is.na(SNPDataColumn)]
+  
+  popGenoCounts <- table(popNameTemp,snpDataTemp)
+  popGenoCounts[is.na(popGenoCounts)] = 0
+  
+  #fixed allele or not biallelic
+  nb_alleles = dim(popGenoCounts)[2]
+  if(nb_alleles!=2){
+    return (list(He=NA,FST=NA))
+  }
+
+  pops_sizes = rowSums(popGenoCounts)
+  nbar = mean(pops_sizes)
+  r = nrow(popGenoCounts) 
+
+  n_c = (r*nbar - sum(pops_sizes^2)/(r*nbar))/(r-1)
+  if ("0" %in% colnames(popGenoCounts)) p0=popGenoCounts[,"0"] else p0=rep(0,r)
+  if ("1" %in% colnames(popGenoCounts)) p1=popGenoCounts[,"1"] else p1=rep(0,r)
+  p_freqs = (p0 + p1/2) /pops_sizes
+  pbar = sum(pops_sizes*p_freqs)/(nbar*r)
+  
+  s2 = sum(pops_sizes*(p_freqs - pbar)^2)/((r-1)*nbar)
+  if(s2==0){return(0); break}  
+  
+  h_freqs = p1/pops_sizes
+  hbar = sum(pops_sizes*h_freqs)/(nbar*r)
+  
+  a <- nbar/n_c*(s2 - 1/(nbar-1)*(pbar*(1-pbar)-((r-1)/r)*s2-(1/4)*hbar))
+  b <- nbar/(nbar-1)*(pbar*(1-pbar) - (r-1)/r*s2 - (2*nbar - 1)/(4*nbar)*hbar)
+  c <- hbar/2
+  FST <- a/(a+b+c) 
+   
+  He <- 1-sum(pbar^2, (1-pbar)^2)
+   
+  return(list(He=He, FST=FST))
+}
+
+
+
+ttt=apply(genoWindow()$geno_matrix, 2, function(snp){getFST_diploids_fromCodage(genoWindow()$pop_code1,snp)} )
+He_Fst = data.frame(matrix(unlist(ttt), nrow=length(ttt), byrow=T))
+He_Fst = cbind(He_Fst,pos=colnames(genoWindow()$geno_matrix))
+colnames(He_Fst) = c("He","FST","Pos")
+my_threshold <- quantile(He_Fst$FST, 0.975, na.rm = T)
+# make an outlier column in the data.frame
+He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "outlier", "background"))
+fstplot = ggplot(He_Fst, aes(Pos, FST, colour = outlier)) + geom_point() + scale_color_manual(values=c("black", "red", "grey"))+ labs(title = genoWindow()$titre,
+        subtitle = "Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)")
+#ggtitle("Weir&Cockerham 84 Fst for bi-allelic snp. (outlier are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)") 
+heplot  = ggplot(He_Fst, aes(Pos, He, colour = outlier)) + geom_point() + ggtitle("Expeced H for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+(fstplot/heplot/hefstplot)
+})
+
 # See also Plink : plink --file data --cluster-missing 
 # Systematic batch effects that induce missingness in parts of the sample will induce correlation between
 # the patterns of missing data that different individuals display. One approach to detecting correlation 
@@ -824,6 +887,7 @@ output$missingPlot <- renderPlot({
   Heatmap(pairwisemissingness, name = "Missingness", cluster_rows=ibsDendro, cluster_columns=ibsDendro, left_annotation =pops_ha ,column_title=paste0(genoWindow()$titre, " pearson:", round(pearson$estimate,digits=4), " p=",signif(pearson$p.value, digits=4) ), col= genoWindow()$my_palette, column_names_side="top", row_names_side = "left")
 
 })
+
 
 output$tsnePlot <- renderPlot({
  if (is.null(tsneRun()) ) return(NULL)
@@ -1564,3 +1628,7 @@ output$logLikPlot <- renderPlot({
 # Francis, R. M. (2017). POPHELPER: an R package and web app to analyse and visualize population structure. Molecular Ecology Resources, 17(1), 27-32. DOI: 10.1111/1755-0998.12509
 
 # example data : https://datadryad.org/stash/dataset/doi:10.5061/dryad.kp11q
+
+# Whitlock, M. C., and K. E. Lotterhos 2015. Reliable detection of loci responsible for local adaptation: inference of a null model through trimming the distribution of {FST}. Am. Nat. 186:S24-S36. 
+  
+# Weir, B. S., and C. C. Cockerham 1984. Estimating F-statistics for the analysis of population structure. Evolution 38:1358-1370. 
