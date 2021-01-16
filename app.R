@@ -134,7 +134,7 @@ body <- dashboardBody(height = '1200px',
        box( width = 2, numericInput("chr_geno_plot", "Chr or Ctg", value = 1, min = 1, max =50,step = 1) ,solidHeader=TRUE),
        box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
        box( width = 2, numericInput("maxSnp_geno_plot", "max nb snps per window", value = 600, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
-       box( width = 7, radioButtons("codage", label = ("How to code genotype"), choices = list("REF/REF=2 REF/ALT=1 ALT/ALT=0" = 1, "REF/REF=0 REF/ALT=1 ALT/ALT=2 (biallelic only!)" = 2), selected = 1, inline=T),solidHeader=TRUE),
+       box( width = 7, radioButtons("codage", label = ("How to code genotype"), choices = list("REF/REF=2 REF/ALT=1 ALT/ALT=0" = 1, "REF/REF=0 REF/ALT=1 ALT/ALT=2 (biallelic only!)" = 2), selected = 2, inline=T),solidHeader=TRUE),
       tabBox(width=12,
       tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
       tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
@@ -361,13 +361,8 @@ shinyjs::disable("applyFilter")
 # Return the UI for a modal dialog with data selection input. If 'failed' is
 # TRUE, then display a message that the previous value was invalid.
 largeur = 6
-# source("modelspages/SI.R", local=T)
-# source("modelspages/IM.R", local=T)
-# source("modelspages/SC.R", local=T)
-# source("modelspages/prior_onegrow_mig.R", local=T)
-source("modelspages/ModelDialog.R", local=T)
 
-#source("heatmap.R")
+source("modelspages/ModelDialog.R", local=T)
 
 models_params = read.table("modelspages/models_params.txt", header=T, sep="\t")
 availableModels = unique(models_params$Model)
@@ -463,7 +458,6 @@ popDeco <-reactive({
   popc="grey"
   names(popc)="pop"
 
-  
   fics = parseFilePaths(c(Data="/Data",Results="/Results"),input$serverpopMapfile)
   if (nrow(fics)>0) {        
       ficpopmap = fics$datapath[1]
@@ -778,45 +772,69 @@ output$SnpFstPlot <- renderPlot({
 if (is.null(genoWindow()) ) return(NULL)
 
   getFST_diploids_fromCodage = function(popnames, SNPDataColumn){  
-  # adapted from OutFLANK for bi-allelic snp only coded as 0 ref/ref, 1 ref/alt, 2 alt/alt
-  #remove missing data for this locus
-  
-  popNameTemp=popnames[!is.na(SNPDataColumn)]
-  snpDataTemp=SNPDataColumn[!is.na(SNPDataColumn)]
-  
-  popGenoCounts <- table(popNameTemp,snpDataTemp)
-  popGenoCounts[is.na(popGenoCounts)] = 0
-  
-  #fixed allele or not biallelic
-  nb_alleles = dim(popGenoCounts)[2]
-  if(nb_alleles!=2){
-    return (list(He=NA,FST=NA))
-  }
+    # adapted from OutFLANK for bi-allelic snp only coded as 0 ref/ref, 1 ref/alt, 2 alt/alt
+    #remove missing data for this locus
+    
+    popNameTemp=popnames[!is.na(SNPDataColumn)]
+    snpDataTemp=SNPDataColumn[!is.na(SNPDataColumn)]
+    
+    popGenoCounts <- table(popNameTemp,snpDataTemp)
+    popGenoCounts[is.na(popGenoCounts)] = 0
+    
+    #fixed allele or not biallelic
+    nb_alleles = dim(popGenoCounts)[2]
+    if(nb_alleles!=2){
+      return (list(He=NA,FST=NA, MeanPi=NA, MeanDxy=NA))
+    }
 
-  pops_sizes = rowSums(popGenoCounts)
-  nbar = mean(pops_sizes)
-  r = nrow(popGenoCounts) 
+    pops_sizes = rowSums(popGenoCounts)
+    nbar = mean(pops_sizes)
+    r = nrow(popGenoCounts) 
+    #W&C Fst
+    n_c = (r*nbar - sum(pops_sizes^2)/(r*nbar))/(r-1)
+    if ("0" %in% colnames(popGenoCounts)) p0=popGenoCounts[,"0"] else p0=rep(0,r)
+    if ("1" %in% colnames(popGenoCounts)) p1=popGenoCounts[,"1"] else p1=rep(0,r)
+    if ("2" %in% colnames(popGenoCounts)) p2=popGenoCounts[,"2"] else p2=rep(0,r)
 
-  n_c = (r*nbar - sum(pops_sizes^2)/(r*nbar))/(r-1)
-  if ("0" %in% colnames(popGenoCounts)) p0=popGenoCounts[,"0"] else p0=rep(0,r)
-  if ("1" %in% colnames(popGenoCounts)) p1=popGenoCounts[,"1"] else p1=rep(0,r)
-  p_freqs = (p0 + p1/2) /pops_sizes
-  pbar = sum(pops_sizes*p_freqs)/(nbar*r)
-  
-  s2 = sum(pops_sizes*(p_freqs - pbar)^2)/((r-1)*nbar)
-  if(s2==0){return(0); break}  
-  
-  h_freqs = p1/pops_sizes
-  hbar = sum(pops_sizes*h_freqs)/(nbar*r)
-  
-  a <- nbar/n_c*(s2 - 1/(nbar-1)*(pbar*(1-pbar)-((r-1)/r)*s2-(1/4)*hbar))
-  b <- nbar/(nbar-1)*(pbar*(1-pbar) - (r-1)/r*s2 - (2*nbar - 1)/(4*nbar)*hbar)
-  c <- hbar/2
-  FST <- a/(a+b+c) 
-   
-  He <- 1-sum(pbar^2, (1-pbar)^2)
-   
-  return(list(He=He, FST=FST))
+    p_freqs = (p0 + p1/2) /pops_sizes
+    pbar = sum(pops_sizes*p_freqs)/(nbar*r)
+    
+    s2 = sum(pops_sizes*(p_freqs - pbar)^2)/((r-1)*nbar)
+    if(s2==0){return(0); break}  
+    
+    h_freqs = p1/pops_sizes
+    hbar = sum(pops_sizes*h_freqs)/(nbar*r)
+    
+    a <- nbar/n_c*(s2 - 1/(nbar-1)*(pbar*(1-pbar)-((r-1)/r)*s2-(1/4)*hbar))
+    b <- nbar/(nbar-1)*(pbar*(1-pbar) - (r-1)/r*s2 - (2*nbar - 1)/(4*nbar)*hbar)
+    c <- hbar/2
+    FST <- a/(a+b+c) 
+    
+    He <- 1-sum(pbar^2, (1-pbar)^2)
+    
+    #http://seqanswers.com/forums/showthread.php?t=33639
+    #samples are diploid
+    al1_counts = (2*p0 + p1) 
+    al2_counts = (2*p2 + p1) 
+    
+    #Pi adapted from popgenome calc_nuc_diversity_within in calc_diversities.R
+    N = al1_counts + al2_counts
+    intrapops_pi = (al1_counts * al2_counts)/(N*(N-1)/2)
+
+    #Dxy :  adapted from popgenome calc_average_nuc_diversity_between_per_site in site_FST.R for bi-allelic snp only
+    Dxy=numeric(r)
+    i=0
+    for (pop1 in 1:(r-1))
+    {
+      for (pop2 in (pop1+1):r)
+      {
+        i = i +1  
+        denom=N[pop1]*N[pop2]
+        Dxy[i] = (al1_counts[pop1] * al2_counts[pop2]  + al2_counts[pop1] * al1_counts[pop2])/denom
+      }
+    }
+
+    return(list(He=He, FST=FST, MeanPi=mean(intrapops_pi), MeanDxy=mean(Dxy)))
 }
 
 
@@ -824,16 +842,17 @@ if (is.null(genoWindow()) ) return(NULL)
 ttt=apply(genoWindow()$geno_matrix, 2, function(snp){getFST_diploids_fromCodage(genoWindow()$pop_code1,snp)} )
 He_Fst = data.frame(matrix(unlist(ttt), nrow=length(ttt), byrow=T))
 He_Fst = cbind(He_Fst,pos=colnames(genoWindow()$geno_matrix))
-colnames(He_Fst) = c("He","FST","Pos")
+colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","Pos")
 my_threshold <- quantile(He_Fst$FST, 0.975, na.rm = T)
 # make an outlier column in the data.frame
 He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "outlier", "background"))
 fstplot = ggplot(He_Fst, aes(Pos, FST, colour = outlier)) + geom_point() + scale_color_manual(values=c("black", "red", "grey"))+ labs(title = genoWindow()$titre,
         subtitle = "Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)")
-#ggtitle("Weir&Cockerham 84 Fst for bi-allelic snp. (outlier are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)") 
-heplot  = ggplot(He_Fst, aes(Pos, He, colour = outlier)) + geom_point() + ggtitle("Expeced H for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+Piplot = ggplot(He_Fst, aes(Pos, MeanPi, colour = outlier)) + geom_point() + ggtitle("Mean Pi for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+Dxyplot = ggplot(He_Fst, aes(Pos, MeanDxy, colour = outlier)) + geom_point() + ggtitle("Mean Dxy for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+heplot = ggplot(He_Fst, aes(Pos, He, colour = outlier)) + geom_point() + ggtitle("Expeced H for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
 hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
-(fstplot/heplot/hefstplot)
+(fstplot/Piplot/Dxyplot/heplot/hefstplot)
 })
 
 # See also Plink : plink --file data --cluster-missing 
