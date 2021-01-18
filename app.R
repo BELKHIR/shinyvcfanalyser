@@ -135,7 +135,7 @@ body <- dashboardBody(height = '1200px',
        box( width = 2, numericInput("chr_geno_plot", "Chr or Ctg", value = 1, min = 1, max =50,step = 1) ,solidHeader=TRUE),
        box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
        box( width = 2, numericInput("maxSnp_geno_plot", "max nb snps per window", value = 600, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
-       box( width = 7, radioButtons("codage", label = ("How to code genotype"), choices = list("REF/REF=2 REF/ALT=1 ALT/ALT=0" = 1, "REF/REF=0 REF/ALT=1 ALT/ALT=2 (biallelic only!)" = 2), selected = 2, inline=T),solidHeader=TRUE),
+       #box( width = 7, radioButtons("codage", label = ("How to code genotype"), choices = list("REF/REF=2 REF/ALT=1 ALT/ALT=0" = 1, "REF/REF=0 REF/ALT=1 ALT/ALT=2 (biallelic only!)" = 2), selected = 2, inline=T),solidHeader=TRUE),
       tabBox(width=12,
       tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
       tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
@@ -723,23 +723,22 @@ genoWindow <- reactive({
 
   #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
   # multi-allelic snp will lead to values > 3 !!
-  if( input$codage == "2")
-  {
-    geno_matrix <- infos[[4]][1,,]+ infos[[4]][2,,]
-    keylabels=c("REF/REF","REF/ALT","ALT/ALT","Missing")
-    my_palette =c("#d4b9da","#e7298a","#980043")#,"#FFFFFF")
-  }else{
-  #this is for multi-allelic snp codage in 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt)
-    geno_matrix <- (infos[[4]][1,,] == 0) + (infos[[4]][2,,] == 0)
-    keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
-    my_palette =c("#980043","#e7298a","#d4b9da")#,"#FFFFFF")
-  }
+  # if( input$codage == "2")
+  # {
+  #   geno_matrix <- infos[[4]][1,,]+ infos[[4]][2,,]
+  #   keylabels=c("REF/REF","REF/ALT","ALT/ALT","Missing")
+  #   my_palette =c("#d4b9da","#e7298a","#980043")#,"#FFFFFF")
+  # }else{
+  # #this is for multi-allelic snp codage in 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt)
+  #   geno_matrix <- (infos[[4]][1,,] == 0) + (infos[[4]][2,,] == 0)
+  #   keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
+  #   my_palette =c("#980043","#e7298a","#d4b9da")#,"#FFFFFF")
+  # }
+
+  geno_matrix=infos[[4]][1,,]+ infos[[4]][2,,]
   #geno_matrix[genos == "NA"] <- NA
-  rownames(geno_matrix)=infos[[1]]
-  colnames(geno_matrix)=infos[[2]]
-  rm(infos)
-  gc()
-  # snp that are missing for all slected samples (they make heatmap.2 bugs while doing hsculst)
+  
+  # snp that are missing for all slected samples 
   snpallmissing = apply(geno_matrix, 2, function(snp) all(is.na(snp)))
   
   # if a sample is NA for all the snp 
@@ -747,39 +746,52 @@ genoWindow <- reactive({
 
   titre = paste0("Contig: ", chr, " window: ", (input$window), " snps: ", ncol(geno_matrix), " 1st: ", firstSnpPos, " last: ", lastSnpPos, " samples with 0 snps: ", length(which(sampleallmissing)), "  snp in 0 samples:", length(which(snpallmissing)) )
 
+  #rm(infos)
+  rm(geno_matrix)
+  gc()
+
+  
   popDeco = popDeco()
 
-  genoWindow = list(geno_matrix=geno_matrix, pop_color1=popDeco()$pop_color1, my_palette=c(my_palette,"#FFFFFF"), keylabels=keylabels, popc=popDeco()$popc, titre=titre, pop_code1=popDeco()$pop_code1)
+  genoWindow = list(infos=infos, pop_color1=popDeco()$pop_color1,  popc=popDeco()$popc, titre=titre, pop_code1=popDeco()$pop_code1)
 
 })
 
 output$genoPlot <- renderPlot({
 if (is.null(genoWindow()) ) return(NULL)
+# for genotype plot we will use the codage : 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt) this allow to have multi-allelic snps 
+geno_matrix = (genoWindow()$infos[[4]][1,,] == 0) + (genoWindow()$infos[[4]][2,,] == 0)
+rownames(geno_matrix) = genoWindow()$infos[[1]]
+colnames(geno_matrix) = genoWindow()$infos[[2]]
+keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
+my_palette =c("#980043","#e7298a","#d4b9da","#FFFFFF")
 
-ddc = apply(genoWindow()$geno_matrix, 2, function(snp) sum(! is.na(snp)))
+
+ddc = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
 names(ddc)=""
 
-ddr = apply(genoWindow()$geno_matrix, 1, function(snp) sum(! is.na(snp)))
+ddr = apply(geno_matrix, 1, function(snp) sum(! is.na(snp)))
 names(ddr)=""
 
 column_ha = HeatmapAnnotation(nonmissingsamples = anno_barplot(ddc) )
 row_ha    = rowAnnotation( nonmissingsnps = anno_barplot(ddr))
 pops_ha   = rowAnnotation(pops= genoWindow()$pop_code1, col=list(pops=genoWindow()$popc))
 
-Heatmap(genoWindow()$geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation = column_ha, right_annotation = row_ha, left_annotation =pops_ha ,show_column_dend = FALSE, show_row_dend = FALSE, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names=FALSE, column_title=genoWindow()$titre, na_col = "white", col=structure(  genoWindow()$my_palette,  names=c(2,1,0,NA)), row_names_gp = gpar(fontsize = 8) )#genoWindow()$keylabels))
+Heatmap(geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation = column_ha, right_annotation = row_ha, left_annotation =pops_ha ,show_column_dend = FALSE, show_row_dend = FALSE, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names=FALSE, column_title=genoWindow()$titre, na_col = "white", col=structure(  my_palette,  names=c(2,1,0,NA)), row_names_gp = gpar(fontsize = 8) , heatmap_legend_param = list( at = c(2, 1, 0), labels = c("REF/REF", "REF/ALT", "ALT/ALT"),title = "Codage") )#genoWindow()$keylabels))
 
 })
 
 output$SnpFstPlot <- renderPlot({
 
-
-
 if (is.null(genoWindow()) ) return(NULL)
 
-if( input$codage == "1") {
-  showModal(modalDialog(title = "Warning", "This is only availbale for this coding scheme: REF/REF=0 REF/ALT=1 ALT/ALT=2 !"))
-  return(NULL)
-}
+  #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
+  # multi-allelic snp will lead to values > 3 !!
+  geno_matrix <- genoWindow()$infos[[4]][1,,] + genoWindow()$infos[[4]][2,,]
+  rownames(geno_matrix) = genoWindow()$infos[[1]]
+  colnames(geno_matrix) = genoWindow()$infos[[2]]
+
+  
   getFST_diploids_fromCodage = function(popnames, SNPDataColumn){  
     # adapted from OutFLANK for bi-allelic snp only coded as 0 ref/ref, 1 ref/alt, 2 alt/alt
     #remove missing data for this locus
@@ -847,9 +859,9 @@ if( input$codage == "1") {
 }
 
 
-ttt=apply(genoWindow()$geno_matrix, 2, function(snp){getFST_diploids_fromCodage(genoWindow()$pop_code1,snp)} )
+ttt=apply(geno_matrix, 2, function(snp){getFST_diploids_fromCodage(genoWindow()$pop_code1,snp)} )
 He_Fst = data.frame(matrix(unlist(ttt), nrow=length(ttt), byrow=T))
-He_Fst = cbind(He_Fst,pos=colnames(genoWindow()$geno_matrix))
+He_Fst = cbind(He_Fst,pos=colnames(geno_matrix))
 colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","Pos")
 my_threshold <- quantile(He_Fst$FST, 0.975, na.rm = T)
 # make an outlier column in the data.frame
@@ -862,7 +874,7 @@ He_Fst = gather(He_Fst,c(-Pos, -outlier, -He), key = "stat", value = "value")
 a <- ggplot(He_Fst, aes(as.numeric(Pos)/10^6, value, colour = outlier)) + geom_point()                                                                                                   
 a <- a + facet_grid(stat~., scales = "free_y") 
 a <- a + xlab("Position (Mb)") + theme_light() + labs(title = genoWindow()$titre,
-        subtitle = "Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)")
+        subtitle = "Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate oulier detection method)")
 
 # (fstplot/Piplot/Dxyplot/heplot/hefstplot)
 # fstplot = ggplot(He_Fst, aes(Pos, FST, colour = outlier)) + geom_point() + scale_color_manual(values=c("black", "red", "grey"))+ labs(title = genoWindow()$titre,
@@ -884,26 +896,33 @@ a <- a + xlab("Position (Mb)") + theme_light() + labs(title = genoWindow()$titre
 # one can also run a ape::pcoa on the pairwise missingness distances and use ape::biplot
 output$missingPlot <- renderPlot({
   if (is.null(genoWindow()) ) return(NULL)
+  #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
+  # multi-allelic snp will lead to values > 3 !!
+  geno_matrix <- genoWindow()$infos[[4]][1,,]+ genoWindow()$infos[[4]][2,,]
+  rownames(geno_matrix) = genoWindow()$infos[[1]]
+  colnames(geno_matrix) = genoWindow()$infos[[2]]
+  my_palette =c("#980043","#e7298a","#d4b9da","#FFFFFF")
 
+  
   Pairemissingness <- function(i, j){
     #fraction of SNPs with missing data for one of two sample genotypes divided by the total number of SNPs genotyped for at least one of the samples
     #res = mapply ( nbNA, geno_matrix[i,], geno_matrix[j,])
     # 0 if geno_matrix[i,z] and geno_matrix[j,z] != NA; 1 if only one param is NA and 2 if both params are NA 
-    res = is.na(genoWindow()$geno_matrix[i,]) + is.na(genoWindow()$geno_matrix[j,])
+    res = is.na(geno_matrix[i,]) + is.na(geno_matrix[j,])
     nonmissings = sum(res == 0)
     onlyonemissing  = sum(res == 1)
     return(onlyonemissing / (onlyonemissing + nonmissings))
   }
   
   # get pairwise combination of samples index
-  combinaisons = combn(nrow(genoWindow()$geno_matrix), 2)
+  combinaisons = combn(nrow(geno_matrix), 2)
 
   missingness = mapply(Pairemissingness, combinaisons[1,], combinaisons[2,])
   if (sum(missingness) == 0) return(NULL)
   #here values are i.e for 4 samples [(1,2), (1,3), (1,4), (2,3), (2,4), (3,4) ]
   #to put the vector in a upper diag matrix
   #a = 1:6; b= matrix(0, 4, 4); b[lower.tri(b, diag=FALSE)] <- a; b <- t(b)
-  pairwisemissingness= matrix(0,nrow(genoWindow()$geno_matrix), nrow(genoWindow()$geno_matrix))
+  pairwisemissingness= matrix(0,nrow(geno_matrix), nrow(geno_matrix))
   pairwisemissingness[lower.tri(pairwisemissingness, diag=FALSE)] <- missingness
   pairwisemissingness = t(pairwisemissingness)
   #lower diag matrix
@@ -915,13 +934,13 @@ output$missingPlot <- renderPlot({
   #reorder based on ibsDendro
   pairwisemissingness <- pairwisemissingness[ibsDendro$order, ibsDendro$order]
   
-  rownames(pairwisemissingness)=rownames(genoWindow()$geno_matrix)[ibsDendro$order]
+  rownames(pairwisemissingness)=rownames(geno_matrix)[ibsDendro$order]
   colnames(pairwisemissingness)=rownames(pairwisemissingness)
 
 
   pops_ha = rowAnnotation(pops= genoWindow()$pop_code1, col=list(pops=genoWindow()$popc))
 
-  Heatmap(pairwisemissingness, name = "Missingness", cluster_rows=ibsDendro, cluster_columns=ibsDendro, left_annotation =pops_ha ,column_title=paste0(genoWindow()$titre, " pearson:", round(pearson$estimate,digits=4), " p=",signif(pearson$p.value, digits=4) ), col= genoWindow()$my_palette, column_names_side="top", row_names_side = "left")
+  Heatmap(pairwisemissingness, name = "Missingness", cluster_rows=ibsDendro, cluster_columns=ibsDendro, left_annotation =pops_ha ,column_title=paste0(genoWindow()$titre, " pearson:", round(pearson$estimate,digits=4), " p=",signif(pearson$p.value, digits=4) ), col=my_palette, column_names_side="top", row_names_side = "left")
 
 })
 
