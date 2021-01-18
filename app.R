@@ -11,6 +11,7 @@ library(ComplexHeatmap)
 
 library("ggtree")
 library(dplyr)
+library(tidyr)
 library(calibrate)
 
 require(pairsD3)
@@ -721,6 +722,7 @@ genoWindow <- reactive({
   lastSnpPos=infos[[2]][length(infos[[2]])]
 
   #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
+  # multi-allelic snp will lead to values > 3 !!
   if( input$codage == "2")
   {
     geno_matrix <- infos[[4]][1,,]+ infos[[4]][2,,]
@@ -769,8 +771,15 @@ Heatmap(genoWindow()$geno_matrix, name = "Genotypes", row_names_side = "left", t
 })
 
 output$SnpFstPlot <- renderPlot({
+
+
+
 if (is.null(genoWindow()) ) return(NULL)
 
+if( input$codage == "1") {
+  showModal(modalDialog(title = "Warning", "This is only availbale for this coding scheme: REF/REF=0 REF/ALT=1 ALT/ALT=2 !"))
+  return(NULL)
+}
   getFST_diploids_fromCodage = function(popnames, SNPDataColumn){  
     # adapted from OutFLANK for bi-allelic snp only coded as 0 ref/ref, 1 ref/alt, 2 alt/alt
     #remove missing data for this locus
@@ -838,21 +847,30 @@ if (is.null(genoWindow()) ) return(NULL)
 }
 
 
-
 ttt=apply(genoWindow()$geno_matrix, 2, function(snp){getFST_diploids_fromCodage(genoWindow()$pop_code1,snp)} )
 He_Fst = data.frame(matrix(unlist(ttt), nrow=length(ttt), byrow=T))
 He_Fst = cbind(He_Fst,pos=colnames(genoWindow()$geno_matrix))
 colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","Pos")
 my_threshold <- quantile(He_Fst$FST, 0.975, na.rm = T)
 # make an outlier column in the data.frame
-He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "outlier", "background"))
-fstplot = ggplot(He_Fst, aes(Pos, FST, colour = outlier)) + geom_point() + scale_color_manual(values=c("black", "red", "grey"))+ labs(title = genoWindow()$titre,
-        subtitle = "Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)")
-Piplot = ggplot(He_Fst, aes(Pos, MeanPi, colour = outlier)) + geom_point() + ggtitle("Mean Pi for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
-Dxyplot = ggplot(He_Fst, aes(Pos, MeanDxy, colour = outlier)) + geom_point() + ggtitle("Mean Dxy for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
-heplot = ggplot(He_Fst, aes(Pos, He, colour = outlier)) + geom_point() + ggtitle("Expeced H for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "Fstoutlier", "background"))
 hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
-(fstplot/Piplot/Dxyplot/heplot/hefstplot)
+
+
+He_Fst = gather(He_Fst,c(-Pos, -outlier, -He), key = "stat", value = "value")                                                                                                             
+
+a <- ggplot(He_Fst, aes(as.numeric(Pos)/10^6, value, colour = outlier)) + geom_point()                                                                                                   
+a <- a + facet_grid(stat~., scales = "free_y") 
+a <- a + xlab("Position (Mb)") + theme_light() + labs(title = genoWindow()$titre,
+        subtitle = "Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)")
+
+# (fstplot/Piplot/Dxyplot/heplot/hefstplot)
+# fstplot = ggplot(He_Fst, aes(Pos, FST, colour = outlier)) + geom_point() + scale_color_manual(values=c("black", "red", "grey"))+ labs(title = genoWindow()$titre,
+#         subtitle = "Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the 97.5% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate method)")
+# Piplot = ggplot(He_Fst, aes(Pos, MeanPi, colour = outlier)) + geom_point() + ggtitle("Mean Pi over pops for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+# Dxyplot = ggplot(He_Fst, aes(Pos, MeanDxy, colour = outlier)) + geom_point() + ggtitle("Mean Dxy over pairewise pops for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+# heplot = ggplot(He_Fst, aes(Pos, He, colour = outlier)) + geom_point() + ggtitle("Expeced H for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
+(a / hefstplot )
 })
 
 # See also Plink : plink --file data --cluster-missing 

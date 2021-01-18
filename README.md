@@ -3,20 +3,28 @@ This tool is aimed at helping to analyse small to medium vcf files of genotyped 
 
 If a file mapping individuals to populations is provided, most plots will be decorated with population info, and pairwise Fst as well as Faststructure can be conducted.
 
-An example of vcf file and popmap file can be found in XXXX.
+Multi-populations AFS spectrum analysis with moments are also available to test up to 24 demographic models using a dual-annealing optimization method.
+
+A bunch of tools are also availbale to manualy scan regions of genome for :
+
+* Genotype distribution over samples
+* Pairewise missingness correlated to Identity by state (IBS)
+* Scans of Fst, Pi and Dxy highliting putative outliers (Fst values > a local quantile threshold)
+
+An example of vcf file and popmap file can be found in example directory. This is a subset of data extracted from the Dryad dataset : https://doi.org/10.5061/dryad.kp11q of Ferchaud et al. 2015.
 
 ## Download or unzip the app files
 
- `git clone https://gitlab.mbb.univ-montp2.fr/khalid/shinyvcfmultisampleanalyser.git`
+ `git clone https://github.com/BELKHIR/shinyvcfanalyser`
  
  then
  
- `cd shinyvcfmultisampleanalyser`
+ `cd shinyvcfanalyser`
 
 ## If docker is not installed check how to do  
   https://docs.docker.com/engine/install/
 
-## To build (to be done only once)
+## To build the Docker image (to be done only once)
 `sudo docker build -t shinyvcfmultisampleanalyser .`
 
 ## Now you have to bind directories from your system to directories inside the container
@@ -29,7 +37,7 @@ e.g. I want to share my files in /home/khalid/projets/workspace/testData and /tm
   
 ## To run with binding and mapping host tcp port 9090 to port 3838 in the container (named vcfmultisample)
 
-`sudo docker run -d -p 9090:3838 $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser`
+`sudo docker run --rm -d -p 9090:3838 $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser`
 
 The app is now accessible via a browser at : http://127.0.0.1:9090
 
@@ -39,6 +47,11 @@ The app is now accessible via a browser at : http://127.0.0.1:9090
 
 This will open a bash console inside the container.  
 Some binaries are installed in /opt/biotools  
+
+## To run a new container only in command line :
+
+`sudo docker run --rm -i -t $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser /bin/bash `  
+
 
 ## Generate a report from command line
 
