@@ -134,7 +134,7 @@ body <- dashboardBody(height = '1200px',
       fluidRow(   
        box( width = 2, numericInput("chr_geno_plot", "Chr or Ctg", value = 1, min = 1, max =50,step = 1) ,solidHeader=TRUE),
        box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
-       box( width = 2, numericInput("maxSnp_geno_plot", "max nb snps per window", value = 600, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
+       box( width = 2, numericInput("maxSnp_geno_plot", "max nb of snps per window", value = 1000, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
        #box( width = 7, radioButtons("codage", label = ("How to code genotype"), choices = list("REF/REF=2 REF/ALT=1 ALT/ALT=0" = 1, "REF/REF=0 REF/ALT=1 ALT/ALT=2 (biallelic only!)" = 2), selected = 2, inline=T),solidHeader=TRUE),
       tabBox(width=12,
       tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),

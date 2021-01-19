@@ -21,17 +21,17 @@ An example of vcf file and popmap file can be found in example directory. This i
  
  `cd shinyvcfanalyser`
 
-## If docker is not installed check how to do  
+## If docker is not installed check how to do here : 
   https://docs.docker.com/engine/install/
 
-## To build the Docker image (to be done only once)
+## Build the Docker image (to be done only once)
 `sudo docker build -t shinyvcfmultisampleanalyser .`
 
 ## Now you have to bind directories from your system to directories inside the container
   
 bind local directories to /Data and /Results in the container
   
-e.g. I want to share my files in /home/khalid/projets/workspace/testData and /tmp/Results
+e.g. I want to share my files in /home/khalid/projets/workspace/testData and get results in /tmp/Results
   
 `DOCK_VOLUME="--mount type=bind,src=/home/khalid/projets/workspace/testData,dst=/Data --mount type=bind,src=/tmp/Results,dst=/Results"`
   
@@ -86,3 +86,5 @@ params:
     optiMethod: "optimize_log"  
     palette: "Set3"  
     seed: 4321  
+
+    
