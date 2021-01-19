@@ -28,7 +28,7 @@ params:
     demoPOP1: 1
     demoPOP2: 2
     testModel: "IMexp"
-    optiMethod: "optimize"#"dual_anneal"
+    optiMethod: "optimize"
     palette: "Set3"
     seed: 4321
 ---
@@ -130,7 +130,7 @@ unlink(tmp_gds_file)
 
 ```
 ## Calculate stats with bcftools :
-```{bash, bcfStats, eval = evaluate, echo = FALSE, warning=FALSE, error=FALSE, message=FALSE}
+```{bash, bcfStats, eval = evaluate, echo = FALSE, warning=FALSE, error=FALSE, message=FALSE, width=80}
 
  outstats=$(mktemp -u);
  outdir=$(mktemp -u -d);
@@ -150,10 +150,10 @@ unlink(tmp_gds_file)
 
 ```
 
-```{r, drawBcfstats,  eval = evaluate, echo = FALSE}
+```{r, drawBcfstats,  eval = evaluate, echo = FALSE, out.width="100%", out.height="200%"}
 knitr::include_graphics(outimage)
 ```
-
+\newpage
 ## Genotypes heatmap on selected ctg/window :
 
 ```{r, genotype_plot, out.width="100%",  out.height="200%"}
@@ -508,7 +508,7 @@ if  ( file.exists(fic) )  {
         if ( params$popMap != "") {
           if ((length(sample.id) == length(popmap[,1])) & (length(setdiff(sample.id, popmap[,1])) == 0) )
           {
-            rownames(df)  = sample.id #ttt
+            rownames(df)  = gsub("_","-",sample.id) #ttt
             colnames(df) =  paste0("cluster", 1:bestK)
             df = cbind( Popmap =popmap[popmap[,1] %in% sample.id,2], df, stringsAsFactors=F)
           }
@@ -609,7 +609,7 @@ for (i in 1:py$fig)
 #knitr::include_graphics(list_files)
 ```
 
-## Demographic Inference with `r params$testModel` model using `r params$optiMethod ` optimization method
+## Demographic Inference with $`r params$testModel`$ model using $`r params$optiMethod `$ optimization method
 
 ```{python, FSdemo, eval = evaluate}
 a_max = 10.0 ; a_min = 0.1 ; a_start = 1.0 ;#beta-binomial alpha
