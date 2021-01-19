@@ -3,13 +3,13 @@ This tool is aimed at helping to analyse small to medium vcf files of genotyped 
 
 If a file mapping individuals to populations is provided, most plots will be decorated with population info, and pairwise Fst as well as Faststructure can be conducted.
 
-Multi-populations AFS spectrum analysis with moments are also available to test up to 24 demographic models using a dual-annealing optimization method.
+Multi-populations AFS spectrum analyses with moments are also available to test up to 24 demographic models using a dual-annealing optimization method.
 
-A bunch of tools are also availbale to manualy scan regions of genome for :
+A bunch of tools are also availbale to manually scan regions of the genome for :
 
 * Genotype distribution over samples
 * Pairewise missingness correlated to Identity by state (IBS)
-* Scans of Fst, Pi and Dxy highliting putative outliers (Fst values > a local quantile threshold)
+* Scans of Fst, Pi and Dxy highlighting putative outliers (Fst values > a local quantile threshold)
 
 An example of vcf file and popmap file can be found in example directory. This is a subset of data extracted from the Dryad dataset : https://doi.org/10.5061/dryad.kp11q of Ferchaud et al. 2015.
 
@@ -21,7 +21,7 @@ An example of vcf file and popmap file can be found in example directory. This i
  
  `cd shinyvcfanalyser`
 
-## If docker is not installed check how to do here : 
+## If docker is not installed check howto do here : 
   https://docs.docker.com/engine/install/
 
 ## Build the Docker image (to be done only once)
