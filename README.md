@@ -41,6 +41,9 @@ e.g. I want to share my files in /home/khalid/projets/workspace/testData and get
 
 The app is now accessible via a browser at : http://127.0.0.1:9090
 
+
+![app screenShot](bcftools_stats.png)
+
 ## The running container can be alternatively accessed in command line this way :
 
 `sudo docker exec -i -t  vcfmultisample /bin/bash`
@@ -87,4 +90,4 @@ params:
     palette: "Set3"  
     seed: 4321  
 
-    
+
