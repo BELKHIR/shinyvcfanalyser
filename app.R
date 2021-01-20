@@ -54,7 +54,7 @@ read_data <- function(fic, ficname, maxLD, minMAF, maxMissing){
     outdir <- tempfile()
     outimage = paste0(outdir,"/bcftools_mqc.png")
 
-    outstats = tempfile()
+    outstats = paste0(fic,"-bcftoolsStats.txt") #tempfile()
     # Generate the PNG
     cmd = paste0("bcftools stats --threads 8 -s - ", fic, "  > ", outstats )
     ttt = system(cmd, intern=T)
@@ -81,6 +81,7 @@ read_data <- function(fic, ficname, maxLD, minMAF, maxMissing){
 
     cmd = paste0("grep 'number of indels:' ", outstats, " | cut -f4 ")
     indels = system(cmd, intern=T)
+    shinyjs::enable("saveBcfStats")
 
     return(list(samples = samples, records = records, snps = snps, indels= indels, bcfstatsimg= outimage))
 }
@@ -236,24 +237,25 @@ body <- dashboardBody(height = '1200px',
         tabBox(width=12,
           tabPanel("Plot pairwise FS", "Use moments to extract a frequency spectrum for each population pair from the VCF file ",
           fluidRow( 
-            tags$head(tags$style(HTML('
-            .selectize-input {white-space: nowrap}
-            #firstPop+ div>.selectize-dropdown{width: 200px !important;}
-            #firstPop+ div>.selectize-input{width: 200px !important; }
-            #downFirst+ div>.selectize-dropdown{width: 200px !important;}
-            #downFirst+ div>.selectize-input{width: 200px !important; }
-            #secondPop+ div>.selectize-dropdown{width: 200px !important; }
-            #secondPop+ div>.selectize-input{width: 200px !important; }
-            #downSencond+ div>.selectize-dropdown{width: 200px !important;}
-            #downSencond+ div>.selectize-input{width: 200px !important; }
+            # tags$head(tags$style(HTML('
+            # .selectize-input {white-space: nowrap}
+            # #firstPop+ div>.selectize-dropdown{width: 200px !important;}
+            # #firstPop+ div>.selectize-input{width: 200px !important; }
+            # #downFirst+ div>.selectize-dropdown{width: 200px !important;}
+            # #downFirst+ div>.selectize-input{width: 200px !important; }
+            # #secondPop+ div>.selectize-dropdown{width: 200px !important; }
+            # #secondPop+ div>.selectize-input{width: 200px !important; }
+            # #downSencond+ div>.selectize-dropdown{width: 200px !important;}
+            # #downSencond+ div>.selectize-input{width: 200px !important; }
             
-            '))),  
-            box(width = 2, tags$div(title="Click here to create a FS from your VCF",actionButton("runsfs", "Create spectrum")), checkboxInput("fold","Data is polarized", value=FALSE )) ,
-            box(width = 2, selectInput("firstPop", "First pop", choices =character(0))),
+            # '))),  
+            box(width = 3, tags$div(title="Click here to create a FS from your VCF",actionButton("runsfs", "Create spectrum")), checkboxInput("fold","Data is polarized", value=FALSE )),  
+            box(width = 1, selectInput("firstPop", "First pop", choices =character(0))),
             box(width = 2,numericInput("downFirst", "down sample first pop to", value = 20, min=2, max=100)),
-            box(width = 2, selectInput("secondPop", "Second pop", choices = character(0))),
+            box(width = 1, selectInput("secondPop", "Second pop", choices = character(0))),
             box(width = 2,numericInput("downSencond", "down sample second pop to", value = 20, min=2, max=100)),
-            box(width=2, tags$div(title="Stop reading VCF when this amount of memory is reached",numericInput("maxMemPercent", "Max % memory", value = 50, min=2, max=80)))
+            box(width=1, tags$div(title="Stop reading VCF when this amount of memory is reached",numericInput("maxMemPercent", "Max % memory", value = 50, min=2, max=80))),
+            box(width=1, shinyDirButton("saveSFS", "Save spectrum", "Please select a folder") )
           ),
           fluidRow( box(width=12, withSpinner(imageOutput("sfsPlot",  height = '800px') ) ) )
           ),
@@ -329,7 +331,10 @@ shinyApp(
         br(),
         h5("This tool is aimed at helping to analyse a small to medium vcf files of genotyped individuals"),
         br(),
-        shinyDirButton("saveFilteredVCF", "Save filtered VCF", "Please select a folder")
+        shinyDirButton("saveFilteredVCF", "Save filtered VCF", "Please select a folder"),
+        br(),
+        shinyDirButton("saveBcfStats", "Save stats", "Please select a folder")
+
 
     ),
     body
@@ -358,6 +363,9 @@ shinyFileChoose(input, "servervcffile", root=c(Data="/Data",Results="/Results"),
 shinyFileChoose(input, "serverpopMapfile", root=c(Data="/Data",Results="/Results"),filetypes=c('txt', 'tsv','csv'), session = session)
 #shinyFileSave(input,"saveFilteredVCF", root = c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'gz'), session = session)
 shinyDirChoose(input, "saveFilteredVCF", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
+shinyDirChoose(input, "saveBcfStats", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
+shinyDirChoose(input, "saveSFS", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
+
 shinyDirChoose(input, "saveFstoutliers", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
 shinyDirChoose(input, "saveIBS", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
 
@@ -366,7 +374,9 @@ Modelparams <- reactiveValues(data = NULL)
 doInference <- FALSE
 shinyjs::hide("busy-img")
 shinyjs::disable("saveFilteredVCF")
+shinyjs::disable("saveBcfStats")
 shinyjs::disable("saveFstoutliers")
+shinyjs::disable("saveSFS")
 shinyjs::disable("applyFilter")
 # Return the UI for a modal dialog with data selection input. If 'failed' is
 # TRUE, then display a message that the previous value was invalid.
@@ -580,6 +590,15 @@ observe({
    }
 })
  
+observe({
+   if (! is.integer(input$saveBcfStats)) {
+      sel_path=parseDirPath(c(Data="/Data",Results="/Results"), input$saveBcfStats)
+      fileDest = paste0(sel_path,"/",basename(filteredFile),"-bcftoolsStats.txt")
+      file.copy(paste0(filteredFile,"-bcftoolsStats.txt"),fileDest)
+      showModal(modalDialog(title = "Message", paste0("File saved to : ", fileDest)))
+   }
+})
+  
 
 output$bcftoolstats <- renderImage({
   if (is.null(selectedData()) ) {
@@ -1490,17 +1509,33 @@ sfsRun <- eventReactive(input$runsfs,{
     #dd = momentsMisc$make_data_dict_vcf(filteredFile, ficpopmap, filter=FALSE)
     ddRes = make_data_dict_vcf_Mem(filteredFile, ficpopmap, filter=FALSE, maxMemPercent=isolate(input$maxMemPercent))
     if (py_to_r(ddRes[0])) showModal(modalDialog(title = "Warning", "Mem used >= ",isolate(input$maxMemPercent),". Only the first ", py_to_r(ddRes[1]), "Snps are used"))
-
+    shinyjs::enable("saveSFS")
     if (py_to_r(ddRes[1])== 0) {
       dd = dadiMisc$make_data_dict_vcf(filteredFile, ficpopmap, filter=FALSE)
       return(dd)
     }else  return(ddRes[2])
+    
    }else{
      showModal(modalDialog(title = "Warning", "You have to provide a population Map file !"))
      return(NULL)
    }
 })
-    
+
+observe({
+   if (! is.integer(input$saveSFS)) {
+      if (is.null(sfsRun())  ) return(NULL)
+      sel_path=parseDirPath(c(Data="/Data",Results="/Results"), input$saveSFS)
+      fileDest = paste0(sel_path,"/",basename(filteredFile),"-SFS.txt")
+      popDeco  = popDeco()
+      popnames = names(popDeco$popc)
+      popsizes = table(popDeco$pop_code1)
+      allpopsfs = momentsSpectrum$Spectrum$from_data_dict(sfsRun(), popnames, popsizes, polarized=input$fold)
+      allpopsfs$to_file(fileDest)
+
+      showModal(modalDialog(title = "Message", paste0("File saved to : ", fileDest)))
+   }
+})
+
 output$sfsPlot <- renderImage({
   
         if (is.null(sfsRun())  ) return(NULL)
