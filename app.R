@@ -135,6 +135,8 @@ body <- dashboardBody(height = '1200px',
        box( width = 2, numericInput("chr_geno_plot", "Chr or Ctg", value = 1, min = 1, max =50,step = 1) ,solidHeader=TRUE),
        box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
        box( width = 2, numericInput("maxSnp_geno_plot", "max nb of snps per window", value = 1000, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
+       box( width = 2, shinyDirButton("saveFstoutliers", "Save putative outliers VCF", "Please select a folder") ),
+
        #box( width = 7, radioButtons("codage", label = ("How to code genotype"), choices = list("REF/REF=2 REF/ALT=1 ALT/ALT=0" = 1, "REF/REF=0 REF/ALT=1 ALT/ALT=2 (biallelic only!)" = 2), selected = 2, inline=T),solidHeader=TRUE),
       tabBox(width=12,
       tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
@@ -207,7 +209,8 @@ body <- dashboardBody(height = '1200px',
         tabBox(width=12,
           tabPanel("Heatmap",
           fluidRow(   
-            box( width = 4, actionButton("runibs", "Go")) 
+            box( width = 4, actionButton("runibs", "Go")),
+            box( width = 2, shinyDirButton("saveIBS", "Save pairewise IBS", "Please select a folder") ),
           ),
           fluidRow( box(width=12, withSpinner(plotOutput("ibs",  height = '1200px') ) ) )
           ),
@@ -340,24 +343,30 @@ gds_file = ""
 curr.sample.id = 1:10
 ibs = NULL
 ibsDendro = NULL
+outliers = list(df=data.frame(), name="")
 
-filteredFile  = ""
+filteredFile     = ""
 globalmaxMissing = 0
 globalminMAF     = 0
-maxLD = 1
-palette = "Set3" #"Accent" #"Spectral"
-curModel <- "SI"
-nbparamsModel <- 4
-curmodelParams=data.frame()
+maxLD            = 1
+palette          = "Set3" #"Accent" #"Spectral"
+curModel         <- "SI"
+nbparamsModel    <- 4
+curmodelParams  = data.frame()
 
 shinyFileChoose(input, "servervcffile", root=c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'gz'), session = session)
 shinyFileChoose(input, "serverpopMapfile", root=c(Data="/Data",Results="/Results"),filetypes=c('txt', 'tsv','csv'), session = session)
 #shinyFileSave(input,"saveFilteredVCF", root = c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'gz'), session = session)
-shinyDirChoose(input, "saveFilteredVCF", roots = c(Data="/Data",Results="/Results"), session = session,  allowDirCreate = TRUE)
+shinyDirChoose(input, "saveFilteredVCF", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
+shinyDirChoose(input, "saveFstoutliers", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
+shinyDirChoose(input, "saveIBS", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
+
+
 Modelparams <- reactiveValues(data = NULL)
 doInference <- FALSE
 shinyjs::hide("busy-img")
 shinyjs::disable("saveFilteredVCF")
+shinyjs::disable("saveFstoutliers")
 shinyjs::disable("applyFilter")
 # Return the UI for a modal dialog with data selection input. If 'failed' is
 # TRUE, then display a message that the previous value was invalid.
@@ -693,7 +702,7 @@ genoWindow <- reactive({
   genofile <- seqOpen(gds_file)
 
   l=seqGetData(genofile, c("chromosome",  "variant.id"))
-  df <- data.frame(matrix(unlist(l), ncol=length(l), byrow=F), stringsAsFactors=F)
+  df <- data.frame(matrix(unlist(l), ncol=length(l), byrow=FALSE), stringsAsFactors=FALSE)
   colnames(df) = c("ctg","ident")
   
   #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
@@ -715,6 +724,7 @@ genoWindow <- reactive({
   if (last > totsnps ){last=totsnps}
   
   seqSetFilter(genofile, variant.id=snps[first:last])
+  nballeles = seqNumAllele(genofile)
   infos = seqGetData(genofile, c("sample.id", "position", "variant.id","genotype"))
   seqClose(genofile)
   #geno <- infos[[4]]
@@ -750,10 +760,9 @@ genoWindow <- reactive({
   rm(geno_matrix)
   gc()
 
-  
   popDeco = popDeco()
 
-  genoWindow = list(infos=infos, pop_color1=popDeco()$pop_color1,  popc=popDeco()$popc, titre=titre, pop_code1=popDeco()$pop_code1)
+  genoWindow = list(infos=infos, ctg=chr, firstSnpPos=firstSnpPos,lastSnpPos= lastSnpPos, nballeles = nballeles, pop_color1=popDeco()$pop_color1,  popc=popDeco()$popc, titre=titre, pop_code1=popDeco()$pop_code1)
 
 })
 
@@ -781,16 +790,39 @@ Heatmap(geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation
 
 })
 
+
+observe({
+   if (! is.integer(input$saveFstoutliers)) {
+      if (dim(outliers$df)[1] > 0 )
+      {
+        sel_path=parseDirPath(c(Data="/Data",Results="/Results"), input$saveFstoutliers)
+        fileDest = paste0(sel_path,"/",outliers$name)
+
+        write.table(outliers$df, file = fileDest, quote=FALSE, sep="\t",  row.names = FALSE)
+        showModal(modalDialog(title = "Message", paste0("File saved to : ", fileDest)))
+      }
+   }
+})
+
 output$SnpFstPlot <- renderPlot({
 
-if (is.null(genoWindow()) ) return(NULL)
+if (is.null(genoWindow())  ) return(NULL)
+if (length(unique(genoWindow()$pop_code1))== 1){
+   showModal(modalDialog(title = "Message", "You must have individuals from more than one populations. Check your popmap file !"))
+   return(NULL)
+}
 
+  shinyjs::enable("saveFstoutliers")
   #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
-  # multi-allelic snp will lead to values > 3 !!
+  # multi-allelic snp will have alleles with values >= 2 !!
+
   geno_matrix <- genoWindow()$infos[[4]][1,,] + genoWindow()$infos[[4]][2,,]
   rownames(geno_matrix) = genoWindow()$infos[[1]]
   colnames(geno_matrix) = genoWindow()$infos[[2]]
+    
+  biallelic = which(genoWindow()$nballeles <= 2)
 
+  geno_matrix = geno_matrix[,biallelic] 
   
   getFST_diploids_fromCodage = function(popnames, SNPDataColumn){  
     # adapted from OutFLANK for bi-allelic snp only coded as 0 ref/ref, 1 ref/alt, 2 alt/alt
@@ -866,6 +898,8 @@ colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","Pos")
 my_threshold <- quantile(He_Fst$FST, 0.975, na.rm = T)
 # make an outlier column in the data.frame
 He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "Fstoutlier", "background"))
+outliers$df <<-  He_Fst %>% filter(outlier == "Fstoutlier") 
+outliers$name <<- paste0(genoWindow()$ctg,"-", genoWindow()$firstSnpPos, "-", genoWindow()$lastSnpPos, "-Fstoutliers.tsv" )
 hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("black", "red", "grey"))
 
 
@@ -1174,6 +1208,17 @@ Heatmap(ibsRun()$ibs$ibs, cluster_rows = ibsRun()$ibs.hc$hclust, cluster_columns
 
  })
 
+
+observe({
+   if (! is.integer(input$saveIBS)) {
+      sel_path=parseDirPath(c(Data="/Data",Results="/Results"), input$saveIBS)
+      fileDest = paste0(sel_path,"/",basename(filteredFile),"-IBS.tsv")
+      
+      write.table(ibsRun()$ibs$ibs,file = fileDest, sep = "\t", quote=FALSE, append=FALSE, row.names=FALSE, col.names=FALSE)
+      showModal(modalDialog(title = "Message", paste0("File saved to : ", fileDest)))
+   }
+})
+
 output$ibsClusters <- renderPlot({
   if (is.null(ibsRun()) ) return(NULL)
   set.seed(1234)
@@ -1395,12 +1440,12 @@ output$downloadData <- downloadHandler(
         df = read.table(fileTodownload, header=F)
 
         ttt = system(paste0('vcf-query -l ', filteredFile), intern=T)
-        df = cbind(df, ttt)
+        df = cbind(ttt, df)
         
-        colnames(df) =  c("Sample", paste0("cluster", 1:input$kfile) )
+        colnames(df) =  c("SampleName" , paste0("cluster", 1:input$kfile))
         popDeco = popDeco()
-        if (length(popDeco$popc) > 1 )  df = cbind( df, pop=popDeco$pop_code1, stringsAsFactors=F)
-        write.table(df, file , append = FALSE, quote = F, sep = "\t",row.names = TRUE, col.names=TRUE)
+        if (length(popDeco$popc) > 1 )  df = cbind( df, pop=as.character(popDeco$pop_code1), stringsAsFactors=F)
+        write.table(df, file , append = FALSE, quote = F, sep = "\t",row.names = FALSE, col.names=TRUE)
         #file.copy(fileTodownload,file)
       }
     }
