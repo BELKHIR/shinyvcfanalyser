@@ -137,13 +137,13 @@ body <- dashboardBody(height = '1200px',
        box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
        box( width = 2, numericInput("maxSnp_geno_plot", "max nb of snps per window", value = 1000, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
        box( width = 2, shinyDirButton("saveFstoutliers", "Save putative outliers VCF", "Please select a folder") ),
-       box( width = 2, radioButtons("howtoslide", label = ("Sliding over"), choices = list("Current ctg/chr" = 1, "30 biggest ctg/chr" = 2), selected = 1, inline=T),solidHeader=TRUE),
+       box( width = 2, radioButtons("howtoslide", label = ("Sliding over"), choices = list("Selected ctg/chr" = 1, "30 biggest ctg/chr" = 2), selected = 1, inline=T),solidHeader=TRUE),
        box( width = 2, numericInput("quantile", "Highlight Fsts > this quantile(%)", value = 97.5, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
 
       tabBox(width=12,
       tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
       tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
-      tabPanel("Current window Scan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) ),
+      tabPanel("Selected window Scan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) ),
       tabPanel("Sliding window Scan",  box(width=12, withSpinner(plotOutput("SlidingSnpFstPlot", width="100%", height = '1000px') )) )
       )
       )
@@ -943,14 +943,14 @@ nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
 
 if (input$howtoslide == 2) # all ctg/chr
 {
-#retain only the maxctg biggest chr/ctg
-maxctg = 30
-if( dim(nbwinds)[1] > maxctg) 
-{
-  retainedWind = which(onechrunits$desp$chr %in% nbwinds$chr[1:maxctg])
-  onechrunits$desp = onechrunits$desp[retainedWind,]
-  onechrunits$index = onechrunits$index[retainedWind]
-}
+  #retain only the maxctg biggest chr/ctg
+  maxctg = 30
+  if( dim(nbwinds)[1] > maxctg) 
+  {
+    retainedWind = which(onechrunits$desp$chr %in% nbwinds$chr[1:maxctg])
+    onechrunits$desp = onechrunits$desp[retainedWind,]
+    onechrunits$index = onechrunits$index[retainedWind]
+  }
 }
 # apply a function on selected windows 
 # the function will get for each window a variable x containing genotypes for each of its snps
@@ -986,14 +986,14 @@ calcWindowFstHePiDxy <- function(window_snps)
 }
 
 #from https://www.r-graph-gallery.com/101_Manhattan_plot.html
-manhattan_plot <- function(don, axisdf, val, maxctg) {
-  ggplot(don, aes_string(x="WindmidPos", y=val)) + 
+Facet_manhattan_plot <- function(don, axisdf, val, maxctg) {
+  a <- ggplot(don, aes_string(x="WindmidPos", y=val)) + 
     # Show all points
     geom_point( aes(color=as.factor(chr)), alpha=0.8, size=1.3) +
     scale_color_manual(values = rep(c("grey", "skyblue"), maxctg )) +
     
     # custom X axis:
-    scale_x_continuous( label = axisdf$chr, breaks= axisdf$center , limits=c(don$WindmidPos[1], NA), guide = guide_axis(angle = 90)) +
+    scale_x_continuous( label = axisdf$chr, breaks= axisdf$center , guide = guide_axis(angle = 90)) +
     scale_y_continuous(expand = c(0, 0) ) +     # remove space between plot area and x axis
     
    # Add highlighted points
@@ -1007,6 +1007,7 @@ manhattan_plot <- function(don, axisdf, val, maxctg) {
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank()
     )
+   a + facet_grid(stat~., scales = "free_y") 
 }
 
 popnames = popDeco()$pop_code1
@@ -1024,18 +1025,19 @@ He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "Fstoutl
 outliers$df <<-  He_Fst %>% filter(outlier == "Fstoutlier") 
 outliers$name <<- paste0(baseficname, "-SlidingFstoutliers.tsv" )
 
-titre = paste0(titre, " nb windows : ", nbwindows," mean snp/window : ", round(meanSnpsperWindow,digits=2) )
+
 
 hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("grey","red","black"))
 
-if (input$howtoslide == 1)#only the current ctg/chr
+if (input$howtoslide == 1)#only the selectedf ctg/chr
 {
+  titre = paste0(titre, " nb windows : ", nbwindows," mean snp/window : ", round(meanSnpsperWindow,digits=2) )
   He_Fst = gather(He_Fst,c(-MidPos, -outlier, -He), key = "stat", value = "value") 
 
-  a <- ggplot(He_Fst, aes(as.numeric(MidPos)/10^6, value, colour = outlier)) + geom_point()+  xlim(1,NA )  + scale_color_manual(values=c("grey","red","black"))
-  a <- a + facet_grid(stat~., scales = "free_y") 
+  a <- ggplot(He_Fst, aes(as.numeric(MidPos)/10^6, value, colour = outlier)) + geom_point() + scale_color_manual(values=c("grey","red","black"))
+  a <- a + facet_grid(stat~., scales = "free_y") + coord_cartesian(xlim = c(0, NA))
   a <- a + xlab("Window MidPosition (Mb)") + theme_light() + labs(title = titre,
-          subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the current contig Fsts mean over windows; see Whitlock and Lotterhos 2015 for approriate oulier detection methods)"))
+          subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the selected contig Fsts mean over windows; see Whitlock and Lotterhos 2015 for approriate oulier detection methods)"))
   (a / hefstplot )
 }else{
 
@@ -1059,16 +1061,14 @@ don <- windowsCoord %>%
   dplyr::arrange(chr, BP) %>%
   dplyr::mutate( WindmidPos=BP+tot)
 
-don=cbind(don, He_Fst[c("FST","MeanPi","MeanDxy","outlier", "nbSNPs")])
+don=cbind(don[,c("chr","WindmidPos")], He_Fst[c("FST","MeanPi","MeanDxy","outlier", "nbSNPs")])
 axisdf = don %>% group_by(chr) %>% dplyr::summarize(center=( max(WindmidPos) + min(WindmidPos) ) / 2 )
-print(axisdf)
-plots = list()
-for (val in c("FST","MeanDxy", "MeanPi","nbSNPs") )
-{ 
-  a = manhattan_plot(don, axisdf, val, maxctg)
-  plots[[val]] = a
-}
-plots[["FST"]]/plots[["MeanDxy"]]/plots[["MeanPi"]] / plots[["nbSNPs"]]
+
+gdon = gather(don,c(-chr, -WindmidPos, -outlier), key = "stat", value = "value")
+
+Facet_manhattan_plot(gdon, axisdf, "value", maxctg) + labs(title = titre,
+          subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the biggest contigs mean Fsts over windows; see Whitlock and Lotterhos 2015 for approriate oulier detection methods)"))
+
 }
 
 })  
