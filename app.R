@@ -7,6 +7,7 @@ library(SeqArray)
 library(Rtsne)
 library(RColorBrewer)
 #library(gplots)
+library(echarts4r)
 library(ComplexHeatmap)
 
 library("ggtree")
@@ -134,17 +135,20 @@ body <- dashboardBody(height = '1200px',
       tabPanel("Scan-geno",
       fluidRow(   
        box( width = 2, numericInput("chr_geno_plot", "Chr or Ctg", value = 1, min = 1, max =50,step = 1) ,solidHeader=TRUE),
-       box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
-       box( width = 2, numericInput("maxSnp_geno_plot", "max nb of snps per window", value = 1000, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
+       #box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
+       #box( width = 2, numericInput("maxSnp_geno_plot", "max nb of snps per window", value = 1000, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
+       #box( width = 2, radioButtons("howtoslide", label = ("Sliding over"), choices = list("Selected ctg/chr" = 1, "30 biggest ctg/chr" = 2), selected = 1, inline=T),solidHeader=TRUE),
+       box( width = 2, numericInput("windSize", "Scan windows size(bp)", value = 10000, min = 100, max = 10000,step = 100),solidHeader=TRUE ),
+       box( width = 2, numericInput("quantile", "red color for windows w/ mean(Fst) > quantile(%)", value = 97.5, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
        box( width = 2, shinyDirButton("saveFstoutliers", "Save putative outliers VCF", "Please select a folder") ),
-       box( width = 2, radioButtons("howtoslide", label = ("Sliding over"), choices = list("Selected ctg/chr" = 1, "30 biggest ctg/chr" = 2), selected = 1, inline=T),solidHeader=TRUE),
-       box( width = 2, numericInput("quantile", "Highlight Fsts > this quantile(%)", value = 97.5, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
 
       tabBox(width=12,
-      tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
+      #tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
+      tabPanel("Genotypes of selected ctg using REF base counts", box(width=12, withSpinner(echarts4rOutput("genoPlot", width="100%", height = '1000px') ))  ),
       tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
-      tabPanel("Selected window Scan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) ),
-      tabPanel("Sliding window Scan",  box(width=12, withSpinner(plotOutput("SlidingSnpFstPlot", width="100%", height = '1000px') )) )
+      #tabPanel("Selected window Scan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) ),
+      tabPanel("Selected Contig FstScan",  box(width=12, withSpinner(echarts4rOutput("SnpFstCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpPiCtgPlot",height = "200px")), withSpinner(echarts4rOutput("SnpDxyCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpNbsnpsCtgPlot",height = "250px")) ) ),
+      tabPanel("Biggest ctg Fst Manhattan plot",  box(width=12, withSpinner(plotOutput("SlidingSnpFstPlot", width="100%", height = '1000px') )) )
       )
       )
       ),
@@ -711,8 +715,9 @@ plot_cluster=function(data, var_cluster,  couleurs, shape)
 
 genoWindow <- reactive({
 
-  window= (input$window)
-  wsize = (input$maxSnp_geno_plot)
+# Here we use all the snp of the selected ctg
+  # window= (input$window)
+  # wsize = (input$maxSnp_geno_plot)
 
   #if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL) }
 
@@ -735,15 +740,18 @@ genoWindow <- reactive({
   
   snps = (df %>% filter(ctg == chr ))$ident
   totsnps=length(snps)
-  first= ((window-1) * wsize) + 1
-  if(first >= totsnps){
-    first=totsnps - wsize
-    showModal(modalDialog(title = "Warning", "You reached the end of the contig !"))
-    return(NULL)
-  }
-  last=first+wsize -1
-  if (last > totsnps ){last=totsnps}
-  
+  # Here we use the snp of the window in the selected ctg
+  # first= ((window-1) * wsize) + 1
+  # if(first >= totsnps){
+  #   first=totsnps - wsize
+  #   showModal(modalDialog(title = "Warning", "You reached the end of the contig !"))
+  #   return(NULL)
+  # }
+  # last=first+wsize -1
+  # if (last > totsnps ){last=totsnps}
+  # Here we use all the snp of the selected ctg
+  first = 1
+  last = totsnps
   seqSetFilter(genofile, variant.id=snps[first:last])
   nballeles = seqNumAllele(genofile)
   infos = seqGetData(genofile, c("sample.id", "position", "variant.id","genotype"))
@@ -775,7 +783,8 @@ genoWindow <- reactive({
   # if a sample is NA for all the snp 
   sampleallmissing = apply(geno_matrix, 1, function(snp) all(is.na(snp)))
 
-  titre = paste0("Contig: ", chr, " window: ", (input$window), " snps: ", ncol(geno_matrix), " 1st: ", firstSnpPos, " last: ", lastSnpPos, " samples with 0 snps: ", length(which(sampleallmissing)), "  snp in 0 samples:", length(which(snpallmissing)) )
+  #titre = paste0("Contig: ", chr, " window: ", (input$window), " snps: ", ncol(geno_matrix), " 1st: ", firstSnpPos, " last: ", lastSnpPos, " samples with 0 snps: ", length(which(sampleallmissing)), "  snp in 0 samples:", length(which(snpallmissing)) )
+  titre = paste0("Contig: ", chr," snps: ", ncol(geno_matrix), " 1st: ", firstSnpPos, " last: ", lastSnpPos, " samples with 0 snps: ", length(which(sampleallmissing)), "  snp in 0 samples:", length(which(snpallmissing)) )
 
   #rm(infos)
   rm(geno_matrix)
@@ -787,30 +796,48 @@ genoWindow <- reactive({
 
 })
 
-output$genoPlot <- renderPlot({
-if (is.null(genoWindow()) ) return(NULL)
-# for genotype plot we will use the codage : 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt) this allow to have multi-allelic snps 
-geno_matrix = (genoWindow()$infos[[4]][1,,] == 0) + (genoWindow()$infos[[4]][2,,] == 0)
-rownames(geno_matrix) = genoWindow()$infos[[1]]
-colnames(geno_matrix) = genoWindow()$infos[[2]]
-keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
-my_palette =c("#980043","#e7298a","#d4b9da","#FFFFFF")
+# output$genoPlot <- renderPlot({
+# if (is.null(genoWindow()) ) return(NULL)
+# # for genotype plot we will use the codage : 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt) this allow to have multi-allelic snps 
+# geno_matrix = (genoWindow()$infos[[4]][1,,] == 0) + (genoWindow()$infos[[4]][2,,] == 0)
+# rownames(geno_matrix) = genoWindow()$infos[[1]]
+# colnames(geno_matrix) = genoWindow()$infos[[2]]
+# keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
+# my_palette =c("#980043","#e7298a","#d4b9da","#FFFFFF")
 
 
-ddc = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
-names(ddc)=""
+# ddc = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
+# names(ddc)=""
 
-ddr = apply(geno_matrix, 1, function(snp) sum(! is.na(snp)))
-names(ddr)=""
+# ddr = apply(geno_matrix, 1, function(snp) sum(! is.na(snp)))
+# names(ddr)=""
 
-column_ha = HeatmapAnnotation(nonmissingsamples = anno_barplot(ddc) )
-row_ha    = rowAnnotation( nonmissingsnps = anno_barplot(ddr))
-pops_ha   = rowAnnotation(pops= genoWindow()$pop_code1, col=list(pops=genoWindow()$popc))
+# column_ha = HeatmapAnnotation(nonmissingsamples = anno_barplot(ddc) )
+# row_ha    = rowAnnotation( nonmissingsnps = anno_barplot(ddr))
+# pops_ha   = rowAnnotation(pops= genoWindow()$pop_code1, col=list(pops=genoWindow()$popc))
 
-Heatmap(geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation = column_ha, right_annotation = row_ha, left_annotation =pops_ha ,show_column_dend = FALSE, show_row_dend = FALSE, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names=FALSE, column_title=genoWindow()$titre, na_col = "white", col=structure(  my_palette,  names=c(2,1,0,NA)), row_names_gp = gpar(fontsize = 8) , heatmap_legend_param = list( at = c(2, 1, 0), labels = c("REF/REF", "REF/ALT", "ALT/ALT"),title = "Codage") )#genoWindow()$keylabels))
+# Heatmap(geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation = column_ha, right_annotation = row_ha, left_annotation =pops_ha ,show_column_dend = FALSE, show_row_dend = FALSE, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names=FALSE, column_title=genoWindow()$titre, na_col = "white", col=structure(  my_palette,  names=c(2,1,0,NA)), row_names_gp = gpar(fontsize = 8) , heatmap_legend_param = list( at = c(2, 1, 0), labels = c("REF/REF", "REF/ALT", "ALT/ALT"),title = "Codage") )#genoWindow()$keylabels))
 
+# })
+output$genoPlot <- renderEcharts4r({
+  if (is.null(genoWindow()) ) return(NULL)
+  # for genotype plot we will use the codage : 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt) this allow to have multi-allelic snps 
+  geno_matrix = (genoWindow()$infos[[4]][1,,] == 0) + (genoWindow()$infos[[4]][2,,] == 0)
+  rownames(geno_matrix) = genoWindow()$infos[[1]]
+  colnames(geno_matrix) = genoWindow()$infos[[2]]
+
+  df = as.data.frame(t(geno_matrix))
+  nbsnp = dim(df)[1]
+  nbind = dim(df)[2]
+  #colnames(df) = paste0("ind", 1:nbind)
+  df = cbind(snp=paste0("snp",1:nbsnp),df)
+
+  ttt = gather(df, c(-snp), key = "ind", value = "code") 
+
+  ttt %>%  e_charts(snp) %>% e_heatmap(ind, code) %>% 
+  e_visual_map(code, show=T, type="piecewise", pieces = list(list(gte = 0, lte = 0, label="ALT/ALT"),list(gte = 1, lte = 1, label="REF/ALT"), list(gte=2,lte=2, label="REF/REF") )) %>%  
+  e_datazoom(show = TRUE, startValue = 1, endValue= 500)  
 })
-
 
 observe({
    if (! is.integer(input$saveFstoutliers)) {
@@ -893,6 +920,123 @@ getFST_diploids_fromCodage = function(popnames, SNPDataColumn){
     return(list(He=He, FST=FST, MeanPi=mean(intrapops_pi), MeanDxy=mean(Dxy)))
 }
 
+output$SnpFstCtgPlot <- renderEcharts4r({
+
+  showfile.gds(closeall=TRUE)
+    
+  if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL)}
+  
+  genofile <- seqOpen(gds_file)
+
+  # check if we have more than one pop
+  popDeco = popDeco()
+  if (length(unique(popDeco()$pop_code1))== 1){
+    showModal(modalDialog(title = "Message", "You must have individuals from more than one populations. Check your popmap file !"))
+    return(NULL)
+  }
+
+  shinyjs::enable("saveFstoutliers")
+
+  # filter selected chr 
+  chrlst <- unique(seqGetData(genofile, "chromosome"))
+  wsize = input$windSize #10*(input$maxSnp_geno_plot) # this is in bp not snp
+  slide = as.integer(wsize/3)
+  baseficname=""
+  #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
+
+  if ((input$chr_geno_plot) %in% chrlst) {
+    chr = input$chr_geno_plot
+  }else {
+    chr = chrlst[input$chr_geno_plot]
+  }
+  titre = paste0(chr," - window size: ", wsize, "(bp) - shift: ", slide, "(bp)")
+  baseficname = paste0(chr,"-wsize", wsize, "-bp-shift", slide)
+
+  seqSetFilterChrom(genofile, include=chr, intersect=TRUE, verbose=FALSE)
+
+  onechrunits = seqUnitSlidingWindows(genofile, win.size=wsize, win.shift=slide)
+  nbwindows = dim(onechrunits$desp)[1]
+  meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)})) 
+  #nb windows by chr/ctg
+  nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
+
+  popnames = popDeco()$pop_code1
+
+  # apply a function on selected windows of snp
+  # the function will get for each window a variable x containing genotypes for each of its snps
+  #  str(x)    example for a window with 2 snps and 90 diploid samples                                  
+  #  int [1:2, 1:90, 1:2] NA NA NA NA 0 0 NA NA NA NA ...
+  #  - attr(*, "dimnames")=List of 3
+  #   ..$ allele : NULL
+  #   ..$ sample : NULL
+  #   ..$ variant: NULL
+  calcWindowFstHePiDxy <- function(window_snps)
+  {
+      nbsnp = dim(window_snps)[3]
+      stats = list()
+      
+      for (i in 1:nbsnp) {
+          allelCodes = max(window_snps[,,i], na.rm=TRUE)
+          if (allelCodes < 2){  # select only biallelic snps 0 = REF 1 = ALT
+          # code infos in the 2 alleles for each snp as : 0 (0/0), 1 (0/1) and 2 (1/1)
+          codedSnp = window_snps[1,,i] + window_snps[2,,i]
+          stats = c(stats, getFST_diploids_fromCodage(popnames, codedSnp)  )
+          } 
+      }
+      if (length(stats)>0)
+      {
+        dd = data.frame(matrix(unlist(stats), ncol=4, byrow=T))
+        return(apply(dd, 2, mean, na.rm=T)) 
+      } else{
+        return(data.frame(He=NA,FST=NA, MeanPi=NA, MeanDxy=NA))
+      }
+  }
+
+  ttt = seqUnitApply(genofile, onechrunits, "genotype", calcWindowFstHePiDxy, as.is = "unlist", parallel=TRUE)
+  seqClose(genofile)
+
+  He_Fst = data.frame(matrix(unlist(ttt), ncol=4, byrow=T))
+  He_Fst = cbind(He_Fst,MidPos=as.integer((onechrunits$desp$start + onechrunits$desp$end )/2), nbSNPs= sapply(onechrunits$index, function(x) return(length(x)) ) )
+  colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","MidPos", "nbSNPs")
+  my_threshold <- quantile(He_Fst$FST, input$quantile/100, na.rm = T)
+  # make an outlier column in the data.frame
+  He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "aoutlier", "background"))
+
+  outliers$df <<-  He_Fst %>% filter(outlier == "aoutlier") 
+  outliers$name <<- paste0(baseficname, "-SlidingFstoutliers.tsv" )
+
+  hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("grey","red","black"))
+ 
+  He_Fst = He_Fst %>% replace_na(list(outlier = "background")) %>% mutate(color=ifelse(outlier=="background","grey","red")) %>% group_by(outlier) 
+
+  create_chart <- function(data, var, threshold=0 ){
+    start = data$MidPos[1]
+    end   = data$MidPos[100]
+    zoom = (var == "FST")
+    echart <- data %>%  
+      e_charts_("MidPos", height = 250 ) %>% 
+      e_scatter_(var,  symbol_size = 5) %>% 
+      e_datazoom(show = zoom, startValue = start, endValue= end) %>%
+      e_add("itemStyle", color) %>%
+      e_axis_labels( x = "Windows mid position in bp", y = var) %>%
+      e_legend(show=F) %>%
+      e_group("4charts")  # all charts in the same group 
+    if (zoom) {
+      echart <- echart %>% 
+      e_mark_line(data = list(yAxis = threshold), title = "Fst > quantile")  %>% 
+      e_title(titre) 
+    }   
+    return(echart)
+    }
+
+    output$SnpDxyCtgPlot <- renderEcharts4r({ create_chart(He_Fst, "MeanPi") })
+    output$SnpPiCtgPlot <- renderEcharts4r({ create_chart(He_Fst, "MeanDxy") })
+    output$SnpNbsnpsCtgPlot <- renderEcharts4r({ create_chart(He_Fst, "nbSNPs") })  #e_show_loading() %>%
+    create_chart(He_Fst, "FST",my_threshold ) %>%    e_connect_group("4charts") # connect charts
+
+
+})
+
 output$SlidingSnpFstPlot<- renderPlot({
 
 showfile.gds(closeall=TRUE)
@@ -912,28 +1056,16 @@ shinyjs::enable("saveFstoutliers")
 
 # filter selected chr or all chr
 chrlst <- unique(seqGetData(genofile, "chromosome"))
-wsize = 10*(input$maxSnp_geno_plot) # this is in bp not snp
+wsize = input$windSize  # 10*(input$maxSnp_geno_plot) # this is in bp not snp
 slide = as.integer(wsize/3)
 baseficname=""
 #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
-if (input$howtoslide == 1)
-{
-  if ((input$chr_geno_plot) %in% chrlst) {
-    chr = input$chr_geno_plot
-  }else {
-    chr = chrlst[input$chr_geno_plot]
-  }
-  titre = paste0(chr," - window size: ", wsize, "(bp) - shift: ", slide)
-  baseficname = paste0(chr,"-wsize", wsize, "-bp-shift", slide)
-} else {
-  chr = chrlst
-  titre =  paste0("All ctgs - window size: ", wsize, "(bp) - shift: ", slide)
-  baseficname = paste0("Allctgs-wsize", wsize, "-bp-shift", slide)
 
-}
+chr = chrlst
+titre =  paste0("All ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp)")
+baseficname = paste0("Allctgs-wsize", wsize, "-bp-shift", slide)
 
 seqSetFilterChrom(genofile, include=chr, intersect=TRUE, verbose=FALSE)
-
 
 onechrunits = seqUnitSlidingWindows(genofile, win.size=wsize, win.shift=slide)
 nbwindows = dim(onechrunits$desp)[1]
@@ -941,17 +1073,15 @@ meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)}))
 #nb windows by chr/ctg
 nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
 
-if (input$howtoslide == 2) # all ctg/chr
+#retain only the maxctg biggest chr/ctg
+maxctg = 30
+if( dim(nbwinds)[1] > maxctg) 
 {
-  #retain only the maxctg biggest chr/ctg
-  maxctg = 30
-  if( dim(nbwinds)[1] > maxctg) 
-  {
-    retainedWind = which(onechrunits$desp$chr %in% nbwinds$chr[1:maxctg])
-    onechrunits$desp = onechrunits$desp[retainedWind,]
-    onechrunits$index = onechrunits$index[retainedWind]
-  }
+  retainedWind = which(onechrunits$desp$chr %in% nbwinds$chr[1:maxctg])
+  onechrunits$desp = onechrunits$desp[retainedWind,]
+  onechrunits$index = onechrunits$index[retainedWind]
 }
+
 # apply a function on selected windows 
 # the function will get for each window a variable x containing genotypes for each of its snps
 #  str(x)    example for a window with 2 snps and 90 diploid samples                                  
@@ -997,7 +1127,7 @@ Facet_manhattan_plot <- function(don, axisdf, val, maxctg) {
     scale_y_continuous(expand = c(0, 0) ) +     # remove space between plot area and x axis
     
    # Add highlighted points
-    geom_point(data=subset(don, outlier=="Fstoutlier"), color="red", size=2) +
+    geom_point(data=subset(don, outlier=="outlier"), color="red", size=2) +
 
     # Custom the theme:
     theme_bw() +
@@ -1020,29 +1150,13 @@ He_Fst = cbind(He_Fst,MidPos=as.integer((onechrunits$desp$start + onechrunits$de
 colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","MidPos", "nbSNPs")
 my_threshold <- quantile(He_Fst$FST, input$quantile/100, na.rm = T)
 # make an outlier column in the data.frame
-He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "Fstoutlier", "background"))
+He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "outlier", "background"))
 
-outliers$df <<-  He_Fst %>% filter(outlier == "Fstoutlier") 
+outliers$df <<-  He_Fst %>% filter(outlier == "outlier") 
 outliers$name <<- paste0(baseficname, "-SlidingFstoutliers.tsv" )
 
-
-
-hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("grey","red","black"))
-
-if (input$howtoslide == 1)#only the selectedf ctg/chr
-{
-  titre = paste0(titre, " nb windows : ", nbwindows," mean snp/window : ", round(meanSnpsperWindow,digits=2) )
-  He_Fst = gather(He_Fst,c(-MidPos, -outlier, -He), key = "stat", value = "value") 
-
-  a <- ggplot(He_Fst, aes(as.numeric(MidPos)/10^6, value, colour = outlier)) + geom_point() + scale_color_manual(values=c("grey","red","black"))
-  a <- a + facet_grid(stat~., scales = "free_y") + coord_cartesian(xlim = c(0, NA))
-  a <- a + xlab("Window MidPosition (Mb)") + theme_light() + labs(title = titre,
-          subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the selected contig Fsts mean over windows; see Whitlock and Lotterhos 2015 for approriate oulier detection methods)"))
-  (a / hefstplot )
-}else{
-
- #Manhattan plots with maxctg ctgs
- #calc mid window positions
+#Manhattan plots with maxctg ctgs
+#calc mid window positions
 windowsCoord = onechrunits$desp %>% mutate(BP=(start+end)/2) 
 
 don <- windowsCoord %>% 
@@ -1069,52 +1183,52 @@ gdon = gather(don,c(-chr, -WindmidPos, -outlier), key = "stat", value = "value")
 Facet_manhattan_plot(gdon, axisdf, "value", maxctg) + labs(title = titre,
           subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the biggest contigs mean Fsts over windows; see Whitlock and Lotterhos 2015 for approriate oulier detection methods)"))
 
-}
+
 
 })  
 
 
-output$SnpFstPlot <- renderPlot({
+# output$SnpFstPlot <- renderPlot({
 
-if (is.null(genoWindow())  ) return(NULL)
-if (length(unique(genoWindow()$pop_code1))== 1){
-   showModal(modalDialog(title = "Message", "You must have individuals from more than one populations. Check your popmap file !"))
-   return(NULL)
-}
+# if (is.null(genoWindow())  ) return(NULL)
+# if (length(unique(genoWindow()$pop_code1))== 1){
+#    showModal(modalDialog(title = "Message", "You must have individuals from more than one populations. Check your popmap file !"))
+#    return(NULL)
+# }
 
-  shinyjs::enable("saveFstoutliers")
-  #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
-  # multi-allelic snp will have alleles with values >= 2 !!
+#   shinyjs::enable("saveFstoutliers")
+#   #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
+#   # multi-allelic snp will have alleles with values >= 2 !!
 
-  geno_matrix <- genoWindow()$infos[[4]][1,,] + genoWindow()$infos[[4]][2,,]
-  rownames(geno_matrix) = genoWindow()$infos[[1]]
-  colnames(geno_matrix) = genoWindow()$infos[[2]]
+#   geno_matrix <- genoWindow()$infos[[4]][1,,] + genoWindow()$infos[[4]][2,,]
+#   rownames(geno_matrix) = genoWindow()$infos[[1]]
+#   colnames(geno_matrix) = genoWindow()$infos[[2]]
     
-  biallelic = which(genoWindow()$nballeles <= 2)
+#   biallelic = which(genoWindow()$nballeles <= 2)
 
-  geno_matrix = geno_matrix[,biallelic] 
+#   geno_matrix = geno_matrix[,biallelic] 
 
-ttt=apply(geno_matrix, 2, function(snp){getFST_diploids_fromCodage(genoWindow()$pop_code1,snp)} )
-He_Fst = data.frame(matrix(unlist(ttt), nrow=length(ttt), byrow=T))
-He_Fst = cbind(He_Fst,pos=colnames(geno_matrix))
-colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","Pos")
-my_threshold <- quantile(He_Fst$FST, input$quantile/100, na.rm = T)
-# make an outlier column in the data.frame
-He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "Fstoutlier", "background"))
-outliers$df <<-  He_Fst %>% filter(outlier == "Fstoutlier") 
+# ttt=apply(geno_matrix, 2, function(snp){getFST_diploids_fromCodage(genoWindow()$pop_code1,snp)} )
+# He_Fst = data.frame(matrix(unlist(ttt), nrow=length(ttt), byrow=T))
+# He_Fst = cbind(He_Fst,pos=colnames(geno_matrix))
+# colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","Pos")
+# my_threshold <- quantile(He_Fst$FST, input$quantile/100, na.rm = T)
+# # make an outlier column in the data.frame
+# He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "Fstoutlier", "background"))
+# outliers$df <<-  He_Fst %>% filter(outlier == "Fstoutlier") 
 
-outliers$name <<- paste0(genoWindow()$ctg,"-", genoWindow()$firstSnpPos, "-", genoWindow()$lastSnpPos, "-Fstoutliers.tsv" )
-hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("grey","red","black"))
+# outliers$name <<- paste0(genoWindow()$ctg,"-", genoWindow()$firstSnpPos, "-", genoWindow()$lastSnpPos, "-Fstoutliers.tsv" )
+# hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("grey","red","black"))
 
-He_Fst = gather(He_Fst,c(-Pos, -outlier, -He), key = "stat", value = "value")                                                                                                             
+# He_Fst = gather(He_Fst,c(-Pos, -outlier, -He), key = "stat", value = "value")                                                                                                             
 
-a <- ggplot(He_Fst, aes(as.numeric(Pos)/10^6, value, colour = outlier)) + geom_point() + scale_color_manual(values=c("grey","red","black")) 
-a <- a + facet_grid(stat~., scales = "free_y") 
-a <- a + xlab("Position (Mb)") + theme_light() + labs(title = genoWindow()$titre,
-        subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate oulier detection method)") )
+# a <- ggplot(He_Fst, aes(as.numeric(Pos)/10^6, value, colour = outlier)) + geom_point() + scale_color_manual(values=c("grey","red","black")) 
+# a <- a + facet_grid(stat~., scales = "free_y") 
+# a <- a + xlab("Position (Mb)") + theme_light() + labs(title = genoWindow()$titre,
+#         subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the current window Fsts; see Whitlock and Lotterhos 2015 for an approriate oulier detection method)") )
 
-(a / hefstplot )
-})
+# (a / hefstplot )
+# })
 
 # See also Plink : plink --file data --cluster-missing 
 # Systematic batch effects that induce missingness in parts of the sample will induce correlation between
@@ -1763,7 +1877,7 @@ if (is.null(sfsRun())  ){
 params = isolate(Modelparams$data)
 
 if (is.null(params) ){showModal(modalDialog(
-        title = "Warning", "You have to set parameters for the selected Model !",))
+        title = "Warning", "You have to set parameters for the selected Model !"))
   return(NULL)
 } 
 

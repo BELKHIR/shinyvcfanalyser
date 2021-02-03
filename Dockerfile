@@ -31,6 +31,7 @@ FROM rocker/r-ver:4.0.3
 
 	RUN apt-get install -y  autotools-dev automake cmake grep sed dpkg fuse zip build-essential pkg-config bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 mercurial subversion zlib1g-dev libncurses5-dev libncursesw5-dev
 	RUN apt-get install -y  libgsl-dev  python-tk
+	RUN apt-get update
     RUN apt-get install -qy libsodium-dev libcairo2-dev texlive-latex-recommended texlive-fonts-recommended libxml2-dev texlive-latex-extra libnspr4
     RUN apt-get update
 
@@ -192,6 +193,11 @@ RUN apt-get install libxt-dev
 RUN Rscript -e 'library("devtools");install_github("jokergoo/ComplexHeatmap", Ncpus=8)'
 RUN Rscript -e 'install.packages("shinyWidgets",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 RUN Rscript -e 'install.packages("patchwork",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
+RUN Rscript -e 'install.packages("echarts4r",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
+
+RUN Rscript -e 'options(download.file.method = "wget");library("devtools");install_github("jokergoo/ComplexHeatmap", upgrade="never")'
+RUN Rscript -e 'options(download.file.method = "wget");devtools::install_github("royfrancis/pophelper", Ncpus=8, upgrade ="never")'
+
 
 RUN pip3 install psutil
 RUN mkdir sagApp
