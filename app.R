@@ -139,12 +139,14 @@ body <- dashboardBody(height = '1200px',
        #box( width = 2, numericInput("maxSnp_geno_plot", "max nb of snps per window", value = 1000, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
        #box( width = 2, radioButtons("howtoslide", label = ("Sliding over"), choices = list("Selected ctg/chr" = 1, "30 biggest ctg/chr" = 2), selected = 1, inline=T),solidHeader=TRUE),
        box( width = 2, numericInput("windSize", "Scan windows size(bp)", value = 10000, min = 100, max = 10000,step = 100),solidHeader=TRUE ),
-       box( width = 2, numericInput("quantile", "red color for windows w/ mean(Fst) > quantile(%)", value = 97.5, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
-       box( width = 2, shinyDirButton("saveFstoutliers", "Save putative outliers VCF", "Please select a folder") ),
+       box( width = 2, numericInput("quantile", "color in red windows w/ mean(Fst) > quantile(%)", value = 97.5, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
+       box( width = 2, shinyDirButton("saveFstoutliers", "Save putative outliers", "Please select a folder") ),
 
       tabBox(width=12,
       #tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
-      tabPanel("Genotypes of selected ctg using REF base counts", box(width=12, withSpinner(echarts4rOutput("genoPlot", width="100%", height = '1000px') ))  ),
+      tabPanel("Genotypes of selected ctg using REF base counts", box(width=12, withSpinner(echarts4rOutput("genoHeatMapPlot", width="100%", height = '800px') ),
+      withSpinner(echarts4rOutput("genoPlot", width="100%", height='150px') )  )),
+      
       tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
       #tabPanel("Selected window Scan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) ),
       tabPanel("Selected Contig FstScan",  box(width=12, withSpinner(echarts4rOutput("SnpFstCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpPiCtgPlot",height = "200px")), withSpinner(echarts4rOutput("SnpDxyCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpNbsnpsCtgPlot",height = "250px")) ) ),
@@ -784,7 +786,7 @@ genoWindow <- reactive({
   sampleallmissing = apply(geno_matrix, 1, function(snp) all(is.na(snp)))
 
   #titre = paste0("Contig: ", chr, " window: ", (input$window), " snps: ", ncol(geno_matrix), " 1st: ", firstSnpPos, " last: ", lastSnpPos, " samples with 0 snps: ", length(which(sampleallmissing)), "  snp in 0 samples:", length(which(snpallmissing)) )
-  titre = paste0("Contig: ", chr," snps: ", ncol(geno_matrix), " 1st: ", firstSnpPos, " last: ", lastSnpPos, " samples with 0 snps: ", length(which(sampleallmissing)), "  snp in 0 samples:", length(which(snpallmissing)) )
+  titre = paste0("Contig: ", chr," #snps: ", ncol(geno_matrix), " 1st: ", firstSnpPos, " last: ", lastSnpPos, " samples missing all snps: ", length(which(sampleallmissing)), "  snp missing in all samples:", length(which(snpallmissing)) )
 
   #rm(infos)
   rm(geno_matrix)
@@ -805,7 +807,6 @@ genoWindow <- reactive({
 # keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
 # my_palette =c("#980043","#e7298a","#d4b9da","#FFFFFF")
 
-
 # ddc = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
 # names(ddc)=""
 
@@ -817,8 +818,8 @@ genoWindow <- reactive({
 # pops_ha   = rowAnnotation(pops= genoWindow()$pop_code1, col=list(pops=genoWindow()$popc))
 
 # Heatmap(geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation = column_ha, right_annotation = row_ha, left_annotation =pops_ha ,show_column_dend = FALSE, show_row_dend = FALSE, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names=FALSE, column_title=genoWindow()$titre, na_col = "white", col=structure(  my_palette,  names=c(2,1,0,NA)), row_names_gp = gpar(fontsize = 8) , heatmap_legend_param = list( at = c(2, 1, 0), labels = c("REF/REF", "REF/ALT", "ALT/ALT"),title = "Codage") )#genoWindow()$keylabels))
-
 # })
+
 output$genoPlot <- renderEcharts4r({
   if (is.null(genoWindow()) ) return(NULL)
   # for genotype plot we will use the codage : 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt) this allow to have multi-allelic snps 
@@ -830,13 +831,24 @@ output$genoPlot <- renderEcharts4r({
   nbsnp = dim(df)[1]
   nbind = dim(df)[2]
   #colnames(df) = paste0("ind", 1:nbind)
-  df = cbind(snp=paste0("snp",1:nbsnp),df)
-
+  #df = cbind(snp=paste0("snp",1:nbsnp),df)
+  df = cbind(snp=colnames(geno_matrix),df) 
   ttt = gather(df, c(-snp), key = "ind", value = "code") 
 
-  ttt %>%  e_charts(snp) %>% e_heatmap(ind, code) %>% 
-  e_visual_map(code, show=T, type="piecewise", pieces = list(list(gte = 0, lte = 0, label="ALT/ALT"),list(gte = 1, lte = 1, label="REF/ALT"), list(gte=2,lte=2, label="REF/REF") )) %>%  
-  e_datazoom(show = TRUE, startValue = 1, endValue= 500)  
+  e1 <- ttt %>%  e_charts(snp, height=800) %>% e_heatmap(ind, code) %>% e_x_axis(show=F) %>%
+  e_visual_map(code, show=T, left='right', top = 'middle',type="piecewise", pieces = list(list(gte = 0, lte = 0, label="ALT/ALT"),list(gte = 1, lte = 1, label="REF/ALT"), list(gte=2,lte=2, label="REF/REF") )) %>%  
+  e_datazoom(show = FALSE, startValue = 0, endValue= 500,toolbox = F) %>% e_title(genoWindow()$titre) %>%e_group("genocharts")
+
+  nonmissing_by_snp = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
+  df2 = data.frame(snp=colnames(geno_matrix),nonmissing = nonmissing_by_snp)
+  e2 <-  df2 %>% e_charts(snp, height =nbind+1) %>% e_line(nonmissing) %>% e_legend(bottom=0) %>% 
+  e_y_axis(min=10) %>% 
+  e_datazoom(show = TRUE, startValue = 0, endValue=500,toolbox = F) %>%  e_tooltip(show = TRUE, position='bottom') %>% e_group("genocharts")
+  
+  output$genoHeatMapPlot <- renderEcharts4r({e1}) 
+  e2 %>%  e_connect_group("genocharts")  
+
+
 })
 
 observe({
@@ -1033,11 +1045,11 @@ output$SnpFstCtgPlot <- renderEcharts4r({
     output$SnpPiCtgPlot <- renderEcharts4r({ create_chart(He_Fst, "MeanDxy") })
     output$SnpNbsnpsCtgPlot <- renderEcharts4r({ create_chart(He_Fst, "nbSNPs") })  #e_show_loading() %>%
     create_chart(He_Fst, "FST",my_threshold ) %>%    e_connect_group("4charts") # connect charts
-
-
 })
 
 output$SlidingSnpFstPlot<- renderPlot({
+#retain only the maxctg biggest chr/ctg
+maxctg = 30
 
 showfile.gds(closeall=TRUE)
   
@@ -1062,8 +1074,8 @@ baseficname=""
 #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
 
 chr = chrlst
-titre =  paste0("All ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp)")
-baseficname = paste0("Allctgs-wsize", wsize, "-bp-shift", slide)
+titre =  paste0("Biggest ", maxctg, " ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp)")
+baseficname = paste0("Biggest", maxctg,"ctgs-wsize", wsize, "-bp-shift", slide)
 
 seqSetFilterChrom(genofile, include=chr, intersect=TRUE, verbose=FALSE)
 
@@ -1073,8 +1085,7 @@ meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)}))
 #nb windows by chr/ctg
 nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
 
-#retain only the maxctg biggest chr/ctg
-maxctg = 30
+
 if( dim(nbwinds)[1] > maxctg) 
 {
   retainedWind = which(onechrunits$desp$chr %in% nbwinds$chr[1:maxctg])
