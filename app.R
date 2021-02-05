@@ -934,11 +934,7 @@ getFST_diploids_fromCodage = function(popnames, SNPDataColumn){
 
 output$SnpFstCtgPlot <- renderEcharts4r({
 
-  showfile.gds(closeall=TRUE)
-    
-  if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL)}
   
-  genofile <- seqOpen(gds_file)
 
   # check if we have more than one pop
   popDeco = popDeco()
@@ -946,6 +942,12 @@ output$SnpFstCtgPlot <- renderEcharts4r({
     showModal(modalDialog(title = "Message", "You must have individuals from more than one populations. Check your popmap file !"))
     return(NULL)
   }
+
+  showfile.gds(closeall=TRUE)
+    
+  if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL)}
+  
+  genofile <- seqOpen(gds_file)
 
   shinyjs::enable("saveFstoutliers")
 
@@ -1051,11 +1053,7 @@ output$SlidingSnpFstPlot<- renderPlot({
 #retain only the maxctg biggest chr/ctg
 maxctg = 30
 
-showfile.gds(closeall=TRUE)
-  
-if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL)}
- 
-genofile <- seqOpen(gds_file)
+
 
 # check if we have more than one pop
 popDeco = popDeco()
@@ -1063,7 +1061,11 @@ if (length(unique(popDeco()$pop_code1))== 1){
    showModal(modalDialog(title = "Message", "You must have individuals from more than one populations. Check your popmap file !"))
    return(NULL)
 }
-
+showfile.gds(closeall=TRUE)
+  
+if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL)}
+ 
+genofile <- seqOpen(gds_file)
 shinyjs::enable("saveFstoutliers")
 
 # filter selected chr or all chr
