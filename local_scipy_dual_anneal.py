@@ -6,6 +6,7 @@
 """
 A Dual Annealing global optimization algorithm
 @khalid.belkhir@umontpellier.fr : change to LocalSearchWrapper to allow the use of bounded minimizers other than L-BFGS-B
+and this change https://github.com/scipy/scipy/commit/046898e4cf0bb4b70f50dbd2fb1829c304c47f28
 or L-BFGS-B with a maxiter < than the default LS_MAXITER_MIN
 """
 
@@ -258,9 +259,12 @@ class StrategyChain(object):
 
     def accept_reject(self, j, e, x_visit):
         r = self._rand_gen.uniform()
-        pqv_temp = (self.acceptance_param - 1.0) * (
-            e - self.energy_state.current_energy) / (
-                self.temperature_step + 1.)
+        # pqv_temp = (self.acceptance_param - 1.0) * (
+        #     e - self.energy_state.current_energy) / (
+        #         self.temperature_step + 1.)
+        pqv_temp = 1.0 - ((1.0 - self.acceptance_param) *
+            (e - self.energy_state.current_energy) / self.temperature_step)
+
         if pqv_temp <= 0.:
             pqv = 0.
         else:

@@ -150,7 +150,7 @@ body <- dashboardBody(height = '1200px',
       tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
       #tabPanel("Selected window Scan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) ),
       tabPanel("Selected Contig FstScan",  box(width=12, withSpinner(echarts4rOutput("SnpFstCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpPiCtgPlot",height = "200px")), withSpinner(echarts4rOutput("SnpDxyCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpNbsnpsCtgPlot",height = "250px")) ) ),
-      tabPanel("Biggest ctg Fst Manhattan plot",  box(width=12, withSpinner(plotOutput("SlidingSnpFstPlot", width="100%", height = '1000px') )) )
+      tabPanel("Fst Manhattan plot for Biggest ctg",  box(width=12, withSpinner(plotOutput("SlidingSnpFstPlot", width="100%", height = '1000px') )) )
       )
       )
       ),
@@ -837,13 +837,15 @@ output$genoPlot <- renderEcharts4r({
 
   e1 <- ttt %>%  e_charts(snp, height=800) %>% e_heatmap(ind, code) %>% e_x_axis(show=F) %>%
   e_visual_map(code, show=T, left='right', top = 'middle',type="piecewise", pieces = list(list(gte = 0, lte = 0, label="ALT/ALT"),list(gte = 1, lte = 1, label="REF/ALT"), list(gte=2,lte=2, label="REF/REF") )) %>%  
-  e_datazoom(show = FALSE, startValue = 0, endValue= 500,toolbox = F) %>% e_title(genoWindow()$titre) %>%e_group("genocharts")
+  e_datazoom(show = FALSE, startValue = 0, endValue= 500,toolbox = F) %>% e_title(genoWindow()$titre) %>% e_toolbox_feature(feature ="saveAsImage")%>%
+  e_group("genocharts")
 
   nonmissing_by_snp = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
   df2 = data.frame(snp=colnames(geno_matrix),nonmissing = nonmissing_by_snp)
   e2 <-  df2 %>% e_charts(snp, height =nbind+1) %>% e_line(nonmissing) %>% e_legend(bottom=0) %>% 
   e_y_axis(min=10) %>% 
-  e_datazoom(show = TRUE, startValue = 0, endValue=500,toolbox = F) %>%  e_tooltip(show = TRUE, position='bottom') %>% e_group("genocharts")
+  e_datazoom(show = TRUE, startValue = 0, endValue=500,toolbox = F) %>%  e_tooltip(show = TRUE, position='bottom') %>% e_toolbox_feature(feature =c("saveAsImage", "dataView")) %>%
+  e_group("genocharts")
   
   output$genoHeatMapPlot <- renderEcharts4r({e1}) 
   e2 %>%  e_connect_group("genocharts")  
@@ -1024,13 +1026,13 @@ output$SnpFstCtgPlot <- renderEcharts4r({
   He_Fst = He_Fst %>% replace_na(list(outlier = "background")) %>% mutate(color=ifelse(outlier=="background","grey","red")) %>% group_by(outlier) 
 
   create_chart <- function(data, var, threshold=0 ){
-    start = data$MidPos[1]
+    start = data$MidPos[1] -1
     end   = data$MidPos[100]
     zoom = (var == "FST")
     echart <- data %>%  
       e_charts_("MidPos", height = 250 ) %>% 
       e_scatter_(var,  symbol_size = 5) %>% 
-      e_datazoom(show = zoom, startValue = start, endValue= end) %>%
+      e_datazoom(show = zoom, startValue = start, endValue= end ,toolbox = F) %>%
       e_add("itemStyle", color) %>%
       e_axis_labels( x = "Windows mid position in bp", y = var) %>%
       e_legend(show=F) %>%
@@ -1038,9 +1040,9 @@ output$SnpFstCtgPlot <- renderEcharts4r({
     if (zoom) {
       echart <- echart %>% 
       e_mark_line(data = list(yAxis = threshold), title = "Fst > quantile")  %>% 
-      e_title(titre) 
+      e_title(paste0(titre, "Weir&Cockerham 84. All stats are means over windows for bi-allelic snp")) 
     }   
-    return(echart)
+    return(echart %>% e_toolbox_feature(feature ="saveAsImage") )
     }
 
     output$SnpDxyCtgPlot <- renderEcharts4r({ create_chart(He_Fst, "MeanPi") })
@@ -1052,8 +1054,6 @@ output$SnpFstCtgPlot <- renderEcharts4r({
 output$SlidingSnpFstPlot<- renderPlot({
 #retain only the maxctg biggest chr/ctg
 maxctg = 30
-
-
 
 # check if we have more than one pop
 popDeco = popDeco()
@@ -1194,7 +1194,7 @@ axisdf = don %>% group_by(chr) %>% dplyr::summarize(center=( max(WindmidPos) + m
 gdon = gather(don,c(-chr, -WindmidPos, -outlier), key = "stat", value = "value")
 
 Facet_manhattan_plot(gdon, axisdf, "value", maxctg) + labs(title = titre,
-          subtitle = paste0("Weir&Cockerham 84 Fst for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the biggest contigs mean Fsts over windows; see Whitlock and Lotterhos 2015 for approriate oulier detection methods)"))
+          subtitle = paste0("Weir&Cockerham 84 mean Fsts over windows for bi-allelic snp. (putative outliers are set to be Fst values > the ",input$quantile,"% quantile of the biggest contigs; see Whitlock and Lotterhos 2015 for approriate oulier detection methods)"))
 
 
 
