@@ -257,7 +257,7 @@ body <- dashboardBody(height = '1200px',
             # #downSencond+ div>.selectize-input{width: 200px !important; }
             
             # '))),  
-            box(width = 3, tags$div(title="Click here to create a FS from your VCF",actionButton("runsfs", "Create spectrum")), checkboxInput("fold","Data is polarized", value=FALSE )),  
+            box(width = 3, tags$div(title="Click here to create a FS from your VCF/BCF",actionButton("runsfs", "Create spectrum")), checkboxInput("fold","Data is polarized", value=FALSE )),  
             box(width = 1, selectInput("firstPop", "First pop", choices =character(0))),
             box(width = 2,numericInput("downFirst", "down sample first pop to", value = 20, min=2, max=100)),
             box(width = 1, selectInput("secondPop", "Second pop", choices = character(0))),
@@ -324,7 +324,7 @@ shinyApp(
       label = '',
       filename = 'main_panel.png'
     ),
-        shinyFilesButton("servervcffile" ,label="Select a VCF in the server", title="", multiple=FALSE),
+        shinyFilesButton("servervcffile" ,label="Select a VCF/BCF in the server", title="", multiple=FALSE),
        # h5("Or"),
        # fileInput("vcffile", "Upload a gzipped VCF File", accept = c( "text/vcf",".vcf.gz") ),
         br(),
@@ -367,7 +367,7 @@ curModel         <- "SI"
 nbparamsModel    <- 4
 curmodelParams  = data.frame()
 
-shinyFileChoose(input, "servervcffile", root=c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'gz'), session = session)
+shinyFileChoose(input, "servervcffile", root=c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'bcf', 'gz'), session = session)
 shinyFileChoose(input, "serverpopMapfile", root=c(Data="/Data",Results="/Results"),filetypes=c('txt', 'tsv','csv'), session = session)
 #shinyFileSave(input,"saveFilteredVCF", root = c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'gz'), session = session)
 shinyDirChoose(input, "saveFilteredVCF", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
@@ -449,8 +449,9 @@ selectedData <- reactive({
     
     original_gds_file <<- paste0("/tmp/",basename(vcf.fn),".gds")
     gds_file <<- original_gds_file 
-    seqVCF2GDS(vcf.fn, gds_file, verbose=FALSE, storage.option="LZ4_RA", parallel = 8,raise.error=F )
-   
+    #seqVCF2GDS(vcf.fn, gds_file, verbose=FALSE, storage.option="LZ4_RA", parallel = 8,raise.error=F )
+    seqBCF2GDS(vcf.fn, gds_file, verbose=FALSE, storage.option="LZ4_RA",raise.error=F )
+
     # Create bed file for fastStructure
     genofile <- seqOpen(gds_file)
     curr.sample.id <<- seqGetData(genofile, "sample.id")
@@ -557,7 +558,7 @@ observeEvent(input$applyFilter,{
       seqExport(genofile, gds_file,verbose=F)
 
       # convert back to vcf
-      seqGDS2VCF(genofile, filteredFile, verbose=F)
+      q(genofile, filteredFile, verbose=F)
 
       seqClose(genofile)
 
@@ -845,6 +846,7 @@ output$genoPlot <- renderEcharts4r({
   e2 <-  df2 %>% e_charts(snp, height =nbind+1) %>% e_line(nonmissing) %>% e_legend(bottom=0) %>% 
   e_y_axis(min=10) %>% 
   e_datazoom(show = TRUE, startValue = 0, endValue=500,toolbox = F) %>%  e_tooltip(show = TRUE, position='bottom') %>% e_toolbox_feature(feature =c("saveAsImage", "dataView")) %>%
+  e_datazoom( startValue = 0, endValue= 500,toolbox = F, type='inside') %>% #add zooming by draging in coordinate, or use mouse wheel (or slides with two fingers on mobile)
   e_group("genocharts")
   
   output$genoHeatMapPlot <- renderEcharts4r({e1}) 
@@ -1040,7 +1042,7 @@ output$SnpFstCtgPlot <- renderEcharts4r({
     if (zoom) {
       echart <- echart %>% 
       e_mark_line(data = list(yAxis = threshold), title = "Fst > quantile")  %>% 
-      e_title(paste0(titre, "Weir&Cockerham 84. All stats are means over windows for bi-allelic snp")) 
+      e_title(titre, " : Fst Weir&Cockerham 84. All stats are means over windows for bi-allelic snp")
     }   
     return(echart %>% e_toolbox_feature(feature ="saveAsImage") )
     }
@@ -1807,14 +1809,15 @@ sfsRun <- eventReactive(input$runsfs,{
     fics = parseFilePaths(c(Data="/Data",Results="/Results"),input$serverpopMapfile)
     ficpopmap = fics$datapath[1]
 
-    #la version de moments ne semble pas fonctionner quand il y a des données manquantes ?!
+    #la version de moments ne semble pas fonctionner quand il y a des données manquantes  voir tentative de modif local_Misc.py ligne 742?!
     #dd = momentsMisc$make_data_dict_vcf(filteredFile, ficpopmap, filter=FALSE)
     ddRes = make_data_dict_vcf_Mem(filteredFile, ficpopmap, filter=FALSE, maxMemPercent=isolate(input$maxMemPercent))
-    if (py_to_r(ddRes[0])) showModal(modalDialog(title = "Warning", "Mem used >= ",isolate(input$maxMemPercent),". Only the first ", py_to_r(ddRes[1]), "Snps are used"))
+    if (py_to_r(ddRes[0])) showModal(modalDialog(title = "Warning", "Mem used >= ",isolate(input$maxMemPercent),". Only the first ", py_to_r(ddRes[1]), "Snps are used. Allow or free more memory !"))
     shinyjs::enable("saveSFS")
-    if (py_to_r(ddRes[1])== 0) {
-      dd = dadiMisc$make_data_dict_vcf(filteredFile, ficpopmap, filter=FALSE)
-      return(dd)
+    if (py_to_r(ddRes[1])== 0) { #this will not work if we are dealing with a bcf file !!
+      return(NULL)
+      # dd = dadiMisc$make_data_dict_vcf(filteredFile, ficpopmap, filter=FALSE)
+      # return(dd)
     }else  return(ddRes[2])
     
    }else{
@@ -1826,11 +1829,13 @@ sfsRun <- eventReactive(input$runsfs,{
 observe({
    if (! is.integer(input$saveSFS)) {
       if (is.null(sfsRun())  ) return(NULL)
-      sel_path=parseDirPath(c(Data="/Data",Results="/Results"), input$saveSFS)
-      fileDest = paste0(sel_path,"/",basename(filteredFile),"-SFS.txt")
-      popDeco  = popDeco()
-      popnames = names(popDeco$popc)
-      popsizes = table(popDeco$pop_code1)
+      sel_path  = parseDirPath(c(Data="/Data",Results="/Results"), input$saveSFS)
+      fileDest  = paste0(sel_path,"/",basename(filteredFile),"-SFS.txt")
+      popDeco   = popDeco()
+      popnames  = names(popDeco$popc)
+      popsizes  = table(popDeco$pop_code1)
+      print(popnames)
+      print(popsizes)
       allpopsfs = momentsSpectrum$Spectrum$from_data_dict(sfsRun(), popnames, popsizes, polarized=input$fold)
       allpopsfs$to_file(fileDest)
 

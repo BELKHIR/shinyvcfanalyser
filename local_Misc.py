@@ -2,7 +2,7 @@
 Miscellaneous utility functions. Including ms simulation.
 """
 
-import bisect, collections, operator, os, sys, time
+import bisect, collections, operator, os, sys, time, shutil
 
 import numpy
 import scipy.linalg
@@ -10,7 +10,7 @@ import scipy.linalg
 from moments import Numerics
 from moments import Spectrum_mod
 import functools
-import psutil
+import psutil,  subprocess
 # Nucleotide order assumed in Q matrices.
 code = "CGTA"
 
@@ -622,8 +622,15 @@ def make_data_dict_vcf_Mem(
     popinfo_dict = _get_popinfo(popinfo_file)
     popinfo_file.close()
 
-    # Open VCF file
-    if os.path.splitext(vcf_filename)[1] == ".gz":
+    # Open VCF or BCF file
+    # we suppose that bcf files end with .bcf
+    if (os.path.splitext(vcf_filename)[1] == ".bcf") | (vcf_filename.endswith(".bcf.gz")):
+        if shutil.which("bcftools") is None:
+                    raise Exception('bcftools not available. Please install bcftools')
+        if not os.path.isfile(vcf_filename + ".csi"):
+                    subprocess.Popen(['bcftools','index', vcf_filename],stdout=subprocess.PIPE)
+        vcf_file  = subprocess.Popen(['bcftools','view', vcf_filename],stdout=subprocess.PIPE).stdout
+    elif os.path.splitext(vcf_filename)[1] == ".gz":
         import gzip
 
         vcf_file = gzip.open(vcf_filename)
@@ -730,9 +737,10 @@ def make_data_dict_vcf_Mem(
                 continue
             gt = sample.split(":")[gtindex]
             g1, g2 = gt[0], gt[2]
-            if g1 == "." or g2 == ".":
-                full_info = False
-                break
+            # commenting those lines will tolerate missing data as in dadi
+            #if g1 == "." or g2 == ".":
+                #full_info = False
+                #break 
             if pop not in calls_dict:
                 calls_dict[pop] = (0, 0)
             refcalls, altcalls = calls_dict[pop]
