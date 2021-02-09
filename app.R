@@ -838,7 +838,10 @@ output$genoPlot <- renderEcharts4r({
 
   e1 <- ttt %>%  e_charts(snp, height=800) %>% e_heatmap(ind, code) %>% e_x_axis(show=F) %>%
   e_visual_map(code, show=T, left='right', top = 'middle',type="piecewise", pieces = list(list(gte = 0, lte = 0, label="ALT/ALT"),list(gte = 1, lte = 1, label="REF/ALT"), list(gte=2,lte=2, label="REF/REF") )) %>%  
-  e_datazoom(show = FALSE, startValue = 0, endValue= 500,toolbox = F) %>% e_title(genoWindow()$titre) %>% e_toolbox_feature(feature ="saveAsImage")%>%
+  e_datazoom(show = FALSE, startValue = 0, endValue= 500,toolbox = F) %>% e_title(genoWindow()$titre) %>% 
+  e_tooltip(trigger = "item", formatter = htmlwidgets::JS("function(params){ 
+    var geno='REF/REF'; if (params.value[2] == 0){geno='ALT/ALT'};if (params.value[2] == 1){geno='REF/ALT'}; 
+    return('snpPos: '+params.value[0] +' ind: '+params.value[1] +' '+geno) }")) %>%
   e_group("genocharts")
 
   nonmissing_by_snp = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
@@ -1834,8 +1837,6 @@ observe({
       popDeco   = popDeco()
       popnames  = names(popDeco$popc)
       popsizes  = table(popDeco$pop_code1)
-      print(popnames)
-      print(popsizes)
       allpopsfs = momentsSpectrum$Spectrum$from_data_dict(sfsRun(), popnames, popsizes, polarized=input$fold)
       allpopsfs$to_file(fileDest)
 
