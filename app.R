@@ -135,22 +135,19 @@ body <- dashboardBody(height = '1200px',
       tabPanel("Scan-geno",
       fluidRow(   
        box( width = 2, numericInput("chr_geno_plot", "Chr or Ctg", value = 1, min = 1, max =50,step = 1) ,solidHeader=TRUE),
-       #box( width = 1, numericInput("window", "Window", value = 1, min = 1, max = 10000,step = 1) ,solidHeader=TRUE),
-       #box( width = 2, numericInput("maxSnp_geno_plot", "max nb of snps per window", value = 1000, min = 10, max = 1000,step = 10),solidHeader=TRUE ),
-       #box( width = 2, radioButtons("howtoslide", label = ("Sliding over"), choices = list("Selected ctg/chr" = 1, "30 biggest ctg/chr" = 2), selected = 1, inline=T),solidHeader=TRUE),
        box( width = 2, numericInput("windSize", "Scan windows size(bp)", value = 10000, min = 100, max = 10000,step = 100),solidHeader=TRUE ),
-       box( width = 2, numericInput("quantile", "color in red windows w/ mean(Fst) > quantile(%)", value = 97.5, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
+       box(width = 1, selectInput("scanfirstPop", "First pop", choices =character(0))),
+       box(width = 1, selectInput("scansecondPop", "Scond pop", choices =character(0))),
+       box( width = 2, numericInput("quantile", "color in red windows w/ mean(Fst) > quantile(%)", value = 99, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
        box( width = 2, shinyDirButton("saveFstoutliers", "Save putative outliers", "Please select a folder") ),
 
       tabBox(width=12,
-      #tabPanel("Genotypes of selected region using REF base counts", box(width=12, withSpinner(plotOutput("genoPlot", width="100%", height = '1000px') ))  ),
-      tabPanel("Genotypes of selected ctg using REF base counts", box(width=12, withSpinner(echarts4rOutput("genoHeatMapPlot", width="100%", height = '800px') ),
+      tabPanel("REF base counts of selected ctg (all samples) ", box(width=12, withSpinner(echarts4rOutput("genoHeatMapPlot", width="100%", height = '800px') ),
       withSpinner(echarts4rOutput("genoPlot", width="100%", height='150px') )  )),
       
-      tabPanel("Missingness for pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
-      #tabPanel("Selected window Scan",  box(width=12, withSpinner(plotOutput("SnpFstPlot", width="100%", height = '1000px') )) ),
-      tabPanel("Selected Contig FstScan",  box(width=12, withSpinner(echarts4rOutput("SnpFstCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpPiCtgPlot",height = "200px")), withSpinner(echarts4rOutput("SnpDxyCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpNbsnpsCtgPlot",height = "250px")) ) ),
-      tabPanel("Fst Manhattan plot for Biggest ctg",  box(width=12, withSpinner(plotOutput("SlidingSnpFstPlot", width="100%", height = '1000px') )) )
+      tabPanel("Missingness for all pairwise samples ordered by IBS",  box(width=12, withSpinner(plotOutput("missingPlot", width="100%", height = '1000px') )) ),
+      tabPanel("Selected Contig on pairewise pop FstScan",  box(width=12, withSpinner(echarts4rOutput("SnpFstCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpPiCtgPlot",height = "200px")), withSpinner(echarts4rOutput("SnpDxyCtgPlot",height = "250px")), withSpinner(echarts4rOutput("SnpNbsnpsCtgPlot",height = "250px")) ) ),
+      tabPanel("Fst Manhattan plot for 30 Biggest ctg on pairewise pop ",  box(width=12, withSpinner(plotOutput("SlidingSnpFstPlot", width="100%", height = '1000px') )) )
       )
       )
       ),
@@ -325,13 +322,9 @@ shinyApp(
       filename = 'main_panel.png'
     ),
         shinyFilesButton("servervcffile" ,label="Select a VCF/BCF in the server", title="", multiple=FALSE),
-       # h5("Or"),
-       # fileInput("vcffile", "Upload a gzipped VCF File", accept = c( "text/vcf",".vcf.gz") ),
         br(),
         shinyFilesButton("serverpopMapfile" ,label="Select popMap file in the server", title="", multiple=FALSE),
         br(),
-        # h5("Or"),
-        # fileInput("popMap", "Upload population Map", accept = c( "txt/tsv", "text/tab-separated-values,text/plain", ".tsv")),
         numericInput("minMAF", "min MAF", value = 0.0, min = 0, max = 1,step = 0.01) ,
         numericInput("maxMissing", "max missing snps(1 allows sites completely missing 0 no missing data allowed)", value = 1, min = 0, max = 1,step = 0.01) ,
         numericInput("maxLD", "Recursively removes SNPs with LD greater than", value = 1.0, min = 0, max = 1,step = 0.01) ,
@@ -342,7 +335,6 @@ shinyApp(
         shinyDirButton("saveFilteredVCF", "Save filtered VCF", "Please select a folder"),
         br(),
         shinyDirButton("saveBcfStats", "Save stats", "Please select a folder")
-
 
     ),
     body
@@ -369,7 +361,6 @@ curmodelParams  = data.frame()
 
 shinyFileChoose(input, "servervcffile", root=c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'bcf', 'gz'), session = session)
 shinyFileChoose(input, "serverpopMapfile", root=c(Data="/Data",Results="/Results"),filetypes=c('txt', 'tsv','csv'), session = session)
-#shinyFileSave(input,"saveFilteredVCF", root = c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'gz'), session = session)
 shinyDirChoose(input, "saveFilteredVCF", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
 shinyDirChoose(input, "saveBcfStats", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
 shinyDirChoose(input, "saveSFS", roots = c(Results="/Results", Data="/Data"), session = session,  allowDirCreate = TRUE)
@@ -507,6 +498,11 @@ popDeco <-reactive({
       showModal(modalDialog(title = "Warning", "The list of samples in popMap is different from samples in the VCF. Population info is ignored. !"))
       }
   }
+
+  choixPops = 1:length(popc)
+  names(choixPops) = names(popc)
+  updateSelectInput(session, "scanfirstPop", label = NULL, choices = choixPops,selected = 1)
+  updateSelectInput(session, "scansecondPop", label = NULL, choices = choixPops,selected = 2)
 
   popDeco=list(pop_color1=pop_color1, popc = popc, pop_code1= pop_code1)
 })
@@ -799,27 +795,6 @@ genoWindow <- reactive({
 
 })
 
-# output$genoPlot <- renderPlot({
-# if (is.null(genoWindow()) ) return(NULL)
-# # for genotype plot we will use the codage : 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt) this allow to have multi-allelic snps 
-# geno_matrix = (genoWindow()$infos[[4]][1,,] == 0) + (genoWindow()$infos[[4]][2,,] == 0)
-# rownames(geno_matrix) = genoWindow()$infos[[1]]
-# colnames(geno_matrix) = genoWindow()$infos[[2]]
-# keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
-# my_palette =c("#980043","#e7298a","#d4b9da","#FFFFFF")
-
-# ddc = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
-# names(ddc)=""
-
-# ddr = apply(geno_matrix, 1, function(snp) sum(! is.na(snp)))
-# names(ddr)=""
-
-# column_ha = HeatmapAnnotation(nonmissingsamples = anno_barplot(ddc) )
-# row_ha    = rowAnnotation( nonmissingsnps = anno_barplot(ddr))
-# pops_ha   = rowAnnotation(pops= genoWindow()$pop_code1, col=list(pops=genoWindow()$popc))
-
-# Heatmap(geno_matrix, name = "Genotypes", row_names_side = "left", top_annotation = column_ha, right_annotation = row_ha, left_annotation =pops_ha ,show_column_dend = FALSE, show_row_dend = FALSE, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names=FALSE, column_title=genoWindow()$titre, na_col = "white", col=structure(  my_palette,  names=c(2,1,0,NA)), row_names_gp = gpar(fontsize = 8) , heatmap_legend_param = list( at = c(2, 1, 0), labels = c("REF/REF", "REF/ALT", "ALT/ALT"),title = "Codage") )#genoWindow()$keylabels))
-# })
 
 output$genoPlot <- renderEcharts4r({
   if (is.null(genoWindow()) ) return(NULL)
@@ -854,7 +829,6 @@ output$genoPlot <- renderEcharts4r({
   
   output$genoHeatMapPlot <- renderEcharts4r({e1}) 
   e2 %>%  e_connect_group("genocharts")  
-
 
 })
 
@@ -941,14 +915,14 @@ getFST_diploids_fromCodage = function(popnames, SNPDataColumn){
 
 output$SnpFstCtgPlot <- renderEcharts4r({
 
-  
-
   # check if we have more than one pop
   popDeco = popDeco()
   if (length(unique(popDeco()$pop_code1))== 1){
-    showModal(modalDialog(title = "Message", "You must have individuals from more than one populations. Check your popmap file !"))
+    showModal(modalDialog(title = "Message", "You must have individuals from more than one population. Check your popmap file !"))
     return(NULL)
   }
+  
+  popnames = popDeco()$pop_code1
 
   showfile.gds(closeall=TRUE)
     
@@ -957,10 +931,19 @@ output$SnpFstCtgPlot <- renderEcharts4r({
   genofile <- seqOpen(gds_file)
 
   shinyjs::enable("saveFstoutliers")
+  
+  # Filter selected pair of pops 
+   pop1 = as.integer(input$scanfirstPop)
+   pop2 = as.integer(input$scansecondPop)
+   pops=unique(popnames)
 
+   allsamples = seqGetData(genofile, "sample.id")
+   
+   seqSetFilter(genofile, sample.id=allsamples[popnames %in% pops[c(pop1,pop2)] ])
+   popnames = popnames[popnames %in% pops[c(pop1,pop2)]]
   # filter selected chr 
   chrlst <- unique(seqGetData(genofile, "chromosome"))
-  wsize = input$windSize #10*(input$maxSnp_geno_plot) # this is in bp not snp
+  wsize = input$windSize #10*(input$maxSnp_geno_plot) # this is in bp not snp count
   slide = as.integer(wsize/3)
   baseficname=""
   #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
@@ -970,8 +953,8 @@ output$SnpFstCtgPlot <- renderEcharts4r({
   }else {
     chr = chrlst[input$chr_geno_plot]
   }
-  titre = paste0(chr," - window size: ", wsize, "(bp) - shift: ", slide, "(bp)")
-  baseficname = paste0(chr,"-wsize", wsize, "-bp-shift", slide)
+  titre = paste0(chr," - window size: ", wsize, "(bp) - shift: ", slide, "(bp) ", pops[pop1]," vs ", pops[pop2])
+  baseficname = paste0(chr,"-wsize", wsize, "-bp-shift", slide,"-pops-", pops[pop1],"-vs-", pops[pop2])
 
   seqSetFilterChrom(genofile, include=chr, intersect=TRUE, verbose=FALSE)
 
@@ -981,7 +964,7 @@ output$SnpFstCtgPlot <- renderEcharts4r({
   #nb windows by chr/ctg
   nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
 
-  popnames = popDeco()$pop_code1
+
 
   # apply a function on selected windows of snp
   # the function will get for each window a variable x containing genotypes for each of its snps
@@ -1069,9 +1052,21 @@ if (length(unique(popDeco()$pop_code1))== 1){
 showfile.gds(closeall=TRUE)
   
 if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL)}
+
+popnames = popDeco()$pop_code1
  
 genofile <- seqOpen(gds_file)
 shinyjs::enable("saveFstoutliers")
+
+  # Filter selected pair of pops 
+   pop1 = as.integer(input$scanfirstPop)
+   pop2 = as.integer(input$scansecondPop)
+   pops=unique(popnames)
+
+   allsamples = seqGetData(genofile, "sample.id")
+   
+   seqSetFilter(genofile, sample.id=allsamples[popnames %in% pops[c(pop1,pop2)] ])
+   popnames = popnames[popnames %in% pops[c(pop1,pop2)]]
 
 # filter selected chr or all chr
 chrlst <- unique(seqGetData(genofile, "chromosome"))
@@ -1081,8 +1076,8 @@ baseficname=""
 #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
 
 chr = chrlst
-titre =  paste0("Biggest ", maxctg, " ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp)")
-baseficname = paste0("Biggest", maxctg,"ctgs-wsize", wsize, "-bp-shift", slide)
+titre =  paste0("Biggest ", maxctg, " ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp) Pops: ", pops[pop1]," vs ", pops[pop2])
+baseficname = paste0("Biggest", maxctg,"ctgs-wsize", wsize, "-bp-shift", slide,"-pops", pops[pop1],"-vs-", pops[pop2])
 
 seqSetFilterChrom(genofile, include=chr, intersect=TRUE, verbose=FALSE)
 
@@ -1091,7 +1086,6 @@ nbwindows = dim(onechrunits$desp)[1]
 meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)})) 
 #nb windows by chr/ctg
 nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
-
 
 if( dim(nbwinds)[1] > maxctg) 
 {
@@ -1158,7 +1152,6 @@ Facet_manhattan_plot <- function(don, axisdf, val, maxctg) {
    a + facet_grid(stat~., scales = "free_y") 
 }
 
-popnames = popDeco()$pop_code1
 
 ttt = seqUnitApply(genofile, onechrunits, "genotype", calcWindowFstHePiDxy, as.is = "unlist", parallel=TRUE)
 seqClose(genofile)
@@ -1803,7 +1796,6 @@ sfsRun <- eventReactive(input$runsfs,{
    if (length(popDeco$popc)>1){
     choixPops = 1:length(popDeco$popc)
     names(choixPops) = names(popDeco$popc)
-    
     updateSelectInput(session, "firstPop", label = NULL, choices = choixPops,selected = 1)
     updateSelectInput(session, "secondPop", label = NULL, choices = choixPops,selected = 2)
     updateSelectInput(session, "firstPop1", label = NULL, choices = choixPops,selected = 1)
