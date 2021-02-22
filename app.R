@@ -357,6 +357,8 @@ maxLD            = 1
 palette          = "Set3" #"Accent" #"Spectral"
 curModel         <- "SI"
 nbparamsModel    <- 4
+
+maxsnpbychr     = 5000 #to limit memory usage
 curmodelParams  = data.frame()
 
 shinyFileChoose(input, "servervcffile", root=c(Data="/Data",Results="/Results"),filetypes=c('vcf', 'bcf', 'gz'), session = session)
@@ -731,24 +733,15 @@ genoWindow <- reactive({
   colnames(df) = c("ctg","ident")
   
   #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
-  if ((input$chr_geno_plot) %in% df$ctg) {
-    chr = input$chr_geno_plot
-  }else {
+  # if ((input$chr_geno_plot) %in% df$ctg) {
+  #   chr = input$chr_geno_plot
+  # }else {
     chr = unique(df$ctg)[input$chr_geno_plot]
-  }
+  # }
   
   snps = (df %>% filter(ctg == chr ))$ident
   totsnps=length(snps)
-  # Here we use the snp of the window in the selected ctg
-  # first= ((window-1) * wsize) + 1
-  # if(first >= totsnps){
-  #   first=totsnps - wsize
-  #   showModal(modalDialog(title = "Warning", "You reached the end of the contig !"))
-  #   return(NULL)
-  # }
-  # last=first+wsize -1
-  # if (last > totsnps ){last=totsnps}
-  # Here we use all the snp of the selected ctg
+  
   first = 1
   last = totsnps
   seqSetFilter(genofile, variant.id=snps[first:last])
@@ -759,19 +752,6 @@ genoWindow <- reactive({
   firstSnpPos=infos[[2]][1]
   lastSnpPos=infos[[2]][length(infos[[2]])]
 
-  #this is for bi-allelic snp codage in 0 (ref/ref) , 1 (ref/alt) and 2 (alt/alt)
-  # multi-allelic snp will lead to values > 3 !!
-  # if( input$codage == "2")
-  # {
-  #   geno_matrix <- infos[[4]][1,,]+ infos[[4]][2,,]
-  #   keylabels=c("REF/REF","REF/ALT","ALT/ALT","Missing")
-  #   my_palette =c("#d4b9da","#e7298a","#980043")#,"#FFFFFF")
-  # }else{
-  # #this is for multi-allelic snp codage in 2 (ref/ref) , 1 (ref/alt) and 0(alt/alt)
-  #   geno_matrix <- (infos[[4]][1,,] == 0) + (infos[[4]][2,,] == 0)
-  #   keylabels=c("ALT/ALT","REF/ALT","REF/REF", "Missing")
-  #   my_palette =c("#980043","#e7298a","#d4b9da")#,"#FFFFFF")
-  # }
 
   geno_matrix=infos[[4]][1,,]+ infos[[4]][2,,]
   #geno_matrix[genos == "NA"] <- NA
@@ -787,7 +767,7 @@ genoWindow <- reactive({
 
   #rm(infos)
   rm(geno_matrix)
-  gc()
+  gc(TRUE)
 
   popDeco = popDeco()
 
@@ -803,21 +783,40 @@ output$genoPlot <- renderEcharts4r({
   rownames(geno_matrix) = genoWindow()$infos[[1]]
   colnames(geno_matrix) = genoWindow()$infos[[2]]
 
+# TO limit memory usage we will retain only 5000 snps per chr
+#Maybe choose the snps randomly
+titre = genoWindow()$titre 
+
+  if (dim(geno_matrix)[2]  > maxsnpbychr) 
+  {
+    geno_matrix = geno_matrix[,sample(1:dim(geno_matrix)[2],maxsnpbychr)]
+    titre = paste0(titre, " Limited to ",maxsnpbychr, " random snps !!!")
+  }
+
   df = as.data.frame(t(geno_matrix))
   nbsnp = dim(df)[1]
   nbind = dim(df)[2]
+
+  
   #colnames(df) = paste0("ind", 1:nbind)
   #df = cbind(snp=paste0("snp",1:nbsnp),df)
   df = cbind(snp=colnames(geno_matrix),df) 
+ 
+
   ttt = gather(df, c(-snp), key = "ind", value = "code") 
+
+# ici libéréer la mémoire occupée par df
+ rm(df)
+ gc(TRUE)
 
   e1 <- ttt %>%  e_charts(snp, height=800) %>% e_heatmap(ind, code) %>% e_x_axis(show=F) %>%
   e_visual_map(code, show=T, left='right', top = 'middle',type="piecewise", pieces = list(list(gte = 0, lte = 0, label="ALT/ALT"),list(gte = 1, lte = 1, label="REF/ALT"), list(gte=2,lte=2, label="REF/REF") )) %>%  
-  e_datazoom(show = FALSE, startValue = 0, endValue= 500,toolbox = F) %>% e_title(genoWindow()$titre) %>% 
+  e_datazoom(show = FALSE, startValue = 0, endValue= 500,toolbox = F) %>% e_title(titre) %>% 
   e_tooltip(trigger = "item", formatter = htmlwidgets::JS("function(params){ 
     var geno='REF/REF'; if (params.value[2] == 0){geno='ALT/ALT'};if (params.value[2] == 1){geno='REF/ALT'}; 
     return('snpPos: '+params.value[0] +' ind: '+params.value[1] +' '+geno) }")) %>%
   e_group("genocharts")
+rm(ttt)
 
   nonmissing_by_snp = apply(geno_matrix, 2, function(snp) sum(! is.na(snp)))
   df2 = data.frame(snp=colnames(geno_matrix),nonmissing = nonmissing_by_snp)
@@ -827,6 +826,7 @@ output$genoPlot <- renderEcharts4r({
   e_datazoom( startValue = 0, endValue= 500,toolbox = F, type='inside') %>% #add zooming by draging in coordinate, or use mouse wheel (or slides with two fingers on mobile)
   e_group("genocharts")
   
+rm(df2)  
   output$genoHeatMapPlot <- renderEcharts4r({e1}) 
   e2 %>%  e_connect_group("genocharts")  
 
@@ -851,8 +851,10 @@ getFST_diploids_fromCodage = function(popnames, SNPDataColumn){
     #remove missing data for this locus
     
     popNameTemp=popnames[!is.na(SNPDataColumn)]
+    if(length(popNameTemp) == 0 | length(unique(popNameTemp))==1){
+       return (list(He=NA,FST=NA, MeanPi=NA, MeanDxy=NA))
+    }
     snpDataTemp=SNPDataColumn[!is.na(SNPDataColumn)]
-    
     popGenoCounts <- table(popNameTemp,snpDataTemp)
     popGenoCounts[is.na(popGenoCounts)] = 0
     
@@ -917,7 +919,10 @@ output$SnpFstCtgPlot <- renderEcharts4r({
 
   # check if we have more than one pop
   popDeco = popDeco()
-  if (length(unique(popDeco()$pop_code1))== 1){
+  pop1 = as.integer(input$scanfirstPop)
+  pop2 = as.integer(input$scansecondPop)
+
+  if (length(unique(popDeco()$pop_code1))== 1 | is.na(pop1) | is.na(pop2)){
     showModal(modalDialog(title = "Message", "You must have individuals from more than one population. Check your popmap file !"))
     return(NULL)
   }
@@ -929,30 +934,25 @@ output$SnpFstCtgPlot <- renderEcharts4r({
   if (! file.exists(gds_file)) {print("No GDS file!"); return(NULL)}
   
   genofile <- seqOpen(gds_file)
-
   shinyjs::enable("saveFstoutliers")
   
   # Filter selected pair of pops 
-   pop1 = as.integer(input$scanfirstPop)
-   pop2 = as.integer(input$scansecondPop)
+  
    pops=unique(popnames)
-
    allsamples = seqGetData(genofile, "sample.id")
-   
    seqSetFilter(genofile, sample.id=allsamples[popnames %in% pops[c(pop1,pop2)] ])
    popnames = popnames[popnames %in% pops[c(pop1,pop2)]]
   # filter selected chr 
   chrlst <- unique(seqGetData(genofile, "chromosome"))
   wsize = input$windSize #10*(input$maxSnp_geno_plot) # this is in bp not snp count
   slide = as.integer(wsize/3)
-  baseficname=""
   #params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
 
-  if ((input$chr_geno_plot) %in% chrlst) {
-    chr = input$chr_geno_plot
-  }else {
+  # if ((input$chr_geno_plot) %in% chrlst) {
+  #   chr = input$chr_geno_plot
+  # }else {
     chr = chrlst[input$chr_geno_plot]
-  }
+  # }
   titre = paste0(chr," - window size: ", wsize, "(bp) - shift: ", slide, "(bp) ", pops[pop1]," vs ", pops[pop2])
   baseficname = paste0(chr,"-wsize", wsize, "-bp-shift", slide,"-pops-", pops[pop1],"-vs-", pops[pop2])
 
@@ -960,11 +960,9 @@ output$SnpFstCtgPlot <- renderEcharts4r({
 
   onechrunits = seqUnitSlidingWindows(genofile, win.size=wsize, win.shift=slide)
   nbwindows = dim(onechrunits$desp)[1]
-  meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)})) 
+  #meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)})) 
   #nb windows by chr/ctg
   nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
-
-
 
   # apply a function on selected windows of snp
   # the function will get for each window a variable x containing genotypes for each of its snps
@@ -984,7 +982,9 @@ output$SnpFstCtgPlot <- renderEcharts4r({
           if (allelCodes < 2){  # select only biallelic snps 0 = REF 1 = ALT
           # code infos in the 2 alleles for each snp as : 0 (0/0), 1 (0/1) and 2 (1/1)
           codedSnp = window_snps[1,,i] + window_snps[2,,i]
-          stats = c(stats, getFST_diploids_fromCodage(popnames, codedSnp)  )
+          snpstat= getFST_diploids_fromCodage(popnames, codedSnp)  
+          stats = c(stats, snpstat)
+          
           } 
       }
       if (length(stats)>0)
@@ -996,22 +996,27 @@ output$SnpFstCtgPlot <- renderEcharts4r({
       }
   }
 
-  ttt = seqUnitApply(genofile, onechrunits, "genotype", calcWindowFstHePiDxy, as.is = "unlist", parallel=TRUE)
+  # ttt = seqUnitApply(genofile, onechrunits, "genotype", calcWindowFstHePiDxy, as.is = "unlist", parallel=TRUE)
+  # seqClose(genofile)
+  # He_Fst = data.frame(matrix(unlist(ttt), ncol=4, byrow=T))
+  # rm(ttt)
+
+  
+  He_Fst = data.frame(matrix(unlist(seqUnitApply(genofile, onechrunits, "genotype", calcWindowFstHePiDxy, as.is = "unlist", parallel=TRUE)), ncol=4, byrow=T))
   seqClose(genofile)
 
-  He_Fst = data.frame(matrix(unlist(ttt), ncol=4, byrow=T))
   He_Fst = cbind(He_Fst,MidPos=as.integer((onechrunits$desp$start + onechrunits$desp$end )/2), nbSNPs= sapply(onechrunits$index, function(x) return(length(x)) ) )
   colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","MidPos", "nbSNPs")
   my_threshold <- quantile(He_Fst$FST, input$quantile/100, na.rm = T)
   # make an outlier column in the data.frame
-  He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "aoutlier", "background"))
+  He_Fst <- He_Fst %>% mutate(color = ifelse(He_Fst$FST > my_threshold, "aoutlier", "background"))
 
-  outliers$df <<-  He_Fst %>% filter(outlier == "aoutlier") 
+  outliers$df <<-  He_Fst %>% filter(color == "aoutlier") 
   outliers$name <<- paste0(baseficname, "-SlidingFstoutliers.tsv" )
 
-  hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("grey","red","black"))
+  #hefstplot  = ggplot(He_Fst, aes(He, FST, colour = outlier)) + geom_point() + ggtitle("Fst vs.He for bi-allelic snp.") + scale_color_manual(values=c("grey","red","black"))
  
-  He_Fst = He_Fst %>% replace_na(list(outlier = "background")) %>% mutate(color=ifelse(outlier=="background","grey","red")) %>% group_by(outlier) 
+  He_Fst = He_Fst %>% replace_na(list(color = "background")) %>% mutate(color=ifelse(color=="background","grey","red")) %>% group_by(color) 
 
   create_chart <- function(data, var, threshold=0 ){
     start = data$MidPos[1] -1
@@ -1068,31 +1073,32 @@ shinyjs::enable("saveFstoutliers")
    seqSetFilter(genofile, sample.id=allsamples[popnames %in% pops[c(pop1,pop2)] ])
    popnames = popnames[popnames %in% pops[c(pop1,pop2)]]
 
-# filter selected chr or all chr
-chrlst <- unique(seqGetData(genofile, "chromosome"))
 wsize = input$windSize  # 10*(input$maxSnp_geno_plot) # this is in bp not snp
 slide = as.integer(wsize/3)
 baseficname=""
-#params$chr_geno_plot can be a contig name or a contig index in the list of ctgs (dans quel ordre ?!!!)
 
-chr = chrlst
-titre =  paste0("Biggest ", maxctg, " ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp) Pops: ", pops[pop1]," vs ", pops[pop2])
-baseficname = paste0("Biggest", maxctg,"ctgs-wsize", wsize, "-bp-shift", slide,"-pops", pops[pop1],"-vs-", pops[pop2])
+# filter maxctg chr or all chr
+infochr=seqGetData(genofile, "chromosome")
 
-seqSetFilterChrom(genofile, include=chr, intersect=TRUE, verbose=FALSE)
-
+nbsnpbychr = sort(table(infochr), decreasing=T)
+chrlst = names(nbsnpbychr)
+if( length(nbsnpbychr) > maxctg) 
+{
+  chrlst = names(nbsnpbychr[1:maxctg])
+  seqSetFilterChrom(genofile, include=chrlst, intersect=TRUE, verbose=FALSE)
+}
 onechrunits = seqUnitSlidingWindows(genofile, win.size=wsize, win.shift=slide)
 nbwindows = dim(onechrunits$desp)[1]
-meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)})) 
+#meanSnpsperWindow = mean(sapply(onechrunits$index, function(x) {length(x)})) 
 #nb windows by chr/ctg
 nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
 
-if( dim(nbwinds)[1] > maxctg) 
-{
-  retainedWind = which(onechrunits$desp$chr %in% nbwinds$chr[1:maxctg])
-  onechrunits$desp = onechrunits$desp[retainedWind,]
-  onechrunits$index = onechrunits$index[retainedWind]
-}
+
+titre =  paste0("Biggest ", maxctg, " ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp) Pops: ", pops[pop1]," vs ", pops[pop2])
+baseficname = paste0("Biggest", maxctg,"ctgs-wsize", wsize, "-bp-shift", slide,"-pops", pops[pop1],"-vs-", pops[pop2])
+
+
+
 
 # apply a function on selected windows 
 # the function will get for each window a variable x containing genotypes for each of its snps
@@ -1157,6 +1163,7 @@ ttt = seqUnitApply(genofile, onechrunits, "genotype", calcWindowFstHePiDxy, as.i
 seqClose(genofile)
 
 He_Fst = data.frame(matrix(unlist(ttt), ncol=4, byrow=T))
+rm(ttt)
 He_Fst = cbind(He_Fst,MidPos=as.integer((onechrunits$desp$start + onechrunits$desp$end )/2), nbSNPs= sapply(onechrunits$index, function(x) return(length(x)) ) )
 colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","MidPos", "nbSNPs")
 my_threshold <- quantile(He_Fst$FST, input$quantile/100, na.rm = T)
@@ -1187,6 +1194,7 @@ don <- windowsCoord %>%
   dplyr::mutate( WindmidPos=BP+tot)
 
 don=cbind(don[,c("chr","WindmidPos")], He_Fst[c("FST","MeanPi","MeanDxy","outlier", "nbSNPs")])
+rm(He_Fst)
 axisdf = don %>% group_by(chr) %>% dplyr::summarize(center=( max(WindmidPos) + min(WindmidPos) ) / 2 )
 
 gdon = gather(don,c(-chr, -WindmidPos, -outlier), key = "stat", value = "value")
