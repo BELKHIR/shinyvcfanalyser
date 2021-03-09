@@ -136,8 +136,8 @@ body <- dashboardBody(height = '1200px',
       fluidRow(   
        box( width = 2, numericInput("chr_geno_plot", "Chr or Ctg", value = 1, min = 1, max =50,step = 1) ,solidHeader=TRUE),
        box( width = 2, numericInput("windSize", "Scan windows size(bp)", value = 10000, min = 100, max = 10000,step = 100),solidHeader=TRUE ),
-       box(width = 1, selectInput("scanfirstPop", "First pop", choices =character(0))),
-       box(width = 1, selectInput("scansecondPop", "Scond pop", choices =character(0))),
+       box( width = 1, selectInput("scanfirstPop", "First pop", choices = character(0))),
+       box( width = 1, selectInput("scansecondPop", "Second pop", choices = character(0))),
        box( width = 2, numericInput("quantile", "color in red windows w/ mean(Fst) > quantile(%)", value = 99, min = 90, max = 99,step = 0.5) ,solidHeader=TRUE),
        box( width = 2, shinyDirButton("saveFstoutliers", "Save putative outliers", "Please select a folder") ),
 
@@ -1093,12 +1093,8 @@ nbwindows = dim(onechrunits$desp)[1]
 #nb windows by chr/ctg
 nbwinds = onechrunits$desp %>% dplyr::count(chr, sort = TRUE)
 
-
 titre =  paste0("Biggest ", maxctg, " ctgs - window size: ", wsize, "(bp) - shift: ", slide,"(bp) Pops: ", pops[pop1]," vs ", pops[pop2])
 baseficname = paste0("Biggest", maxctg,"ctgs-wsize", wsize, "-bp-shift", slide,"-pops", pops[pop1],"-vs-", pops[pop2])
-
-
-
 
 # apply a function on selected windows 
 # the function will get for each window a variable x containing genotypes for each of its snps
@@ -1164,8 +1160,8 @@ seqClose(genofile)
 
 He_Fst = data.frame(matrix(unlist(ttt), ncol=4, byrow=T))
 rm(ttt)
-He_Fst = cbind(He_Fst,MidPos=as.integer((onechrunits$desp$start + onechrunits$desp$end )/2), nbSNPs= sapply(onechrunits$index, function(x) return(length(x)) ) )
-colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","MidPos", "nbSNPs")
+He_Fst = cbind(He_Fst,chr=onechrunits$desp$chr, MidPos=as.integer((onechrunits$desp$start + onechrunits$desp$end )/2), nbSNPs= sapply(onechrunits$index, function(x) return(length(x)) ) )
+colnames(He_Fst) = c("He","FST","MeanPi","MeanDxy","Chr","MidPos", "nbSNPs")
 my_threshold <- quantile(He_Fst$FST, input$quantile/100, na.rm = T)
 # make an outlier column in the data.frame
 He_Fst <- He_Fst %>% mutate(outlier = ifelse(He_Fst$FST > my_threshold, "outlier", "background"))

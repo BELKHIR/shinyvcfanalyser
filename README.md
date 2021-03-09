@@ -13,6 +13,17 @@ A bunch of tools are also availbale to manually scan regions of the genome for :
 
 An example of vcf file and popmap file can be found in example directory. This is a subset of data extracted from the Dryad dataset : https://doi.org/10.5061/dryad.kp11q of Ferchaud et al. 2015.
 
+Important :
+
+popmap file must list samples in the same order as in the vcf/bcf file !
+
+To get the ordered list of samples in your vcf/bcv :
+
+``` bcftools query -l my.vcf.gz ```
+
+The popmap must be atext file of two columns separated by a tabulation. The first column is the sample names and the second is the population name.
+
+
 ## Download or unzip the app files
 
  `git clone https://github.com/BELKHIR/shinyvcfanalyser`
