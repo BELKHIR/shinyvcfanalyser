@@ -27,8 +27,8 @@ FROM rocker/r-ver:4.0.3
 	RUN apt-get install -y libssl-dev libxml2-dev libpcre3-dev liblzma-dev libbz2-dev libcurl4-openssl-dev liblapack3 git nano graphviz libproj-dev
     RUN apt-get install -y python
     #RUN cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py && rm -f get-pip.py
-    RUN curl https://bootstrap.pypa.io/2.7/get-pip.py --output get-pip.py && python get-pip.py && rm -f get-pip.py
-
+    #RUN curl https://bootstrap.pypa.io/2.7/get-pip.py --output get-pip.py && python get-pip.py && rm -f get-pip.py
+    RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && python get-pip.py && rm -f get-pip.py
 	RUN apt-get install -y  autotools-dev automake cmake grep sed dpkg fuse zip build-essential pkg-config bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 mercurial subversion zlib1g-dev libncurses5-dev libncursesw5-dev
 	RUN apt-get install -y  libgsl-dev  python-tk
 	RUN apt-get update

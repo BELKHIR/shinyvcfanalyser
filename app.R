@@ -229,8 +229,9 @@ body <- dashboardBody(height = '1200px',
         fluidRow(
             box( width = 3, sliderInput("K", label = "K: number of populations range ", min = 2, max = 10, value = c(2, 4)) ),
             box( width = 3, numericInput("fastcv", "test sets for cross-validation", value = 0, min = 0, max = 5,step = 1) ),
-            box( width = 3, selectInput('Prior', 'Prior', c("simple","logistic")) ),
-            box( width = 3, actionButton("runfastStructure", "Go")) 
+            box( width = 2, selectInput('Prior', 'Prior', c("simple","logistic")) ),  
+            box( width = 2, selectInput("convergence", "convergence criterion", choices = list("1e-6" = "1e-6", "1e-7" = "1e-7", "1e-8" = "1e-8"),  selected = 1)),
+            box( width = 2, actionButton("runfastStructure", "Go")) 
              ),
             box(width = 9,div(style = 'overflow-x: scroll', withSpinner(imageOutput("distruct", width="1200px", height="800px")) )),
             box(width = 3, selectInput("kfile", "Mean of admixture proportions for k= :", choices = c("K=2"="2", "K=3"="3", "K=4"="4")),
@@ -1658,18 +1659,25 @@ plotfastStructpopHelper <- eventReactive(input$runfastStructure, {
     files <- Sys.glob(paste0(filteredFile ,'*.meanQ') )
     unlink(files)
     print(filteredFile)
-
+    tol = as.numeric(input$convergence)
+    testedK = 0
     for (K in isolate(input$K[1]):isolate(input$K[2] ) )
     {
       if (K < isolate(input$K[2]))
-       cmd = paste0("python /opt/biotools/bin/fastStructure/structure.py -K ",K, " --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr &")
+       cmd = paste0("python /opt/biotools/bin/fastStructure/structure.py -K ",K," --tol=",tol ," --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr &")
       else 
-       cmd = paste0("python /opt/biotools/bin/fastStructure/structure.py -K ",K, " --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr ")
-
+       cmd = paste0("python /opt/biotools/bin/fastStructure/structure.py -K ",K," --tol=",tol , " --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr ")
+      testedK = testedK +1
       system(cmd)
     }
-
-  
+    #in case the last run with the higest K ends before the others we have to wait
+    repeat{
+        files <- Sys.glob(paste0(filteredFile ,'*.meanQ') )
+        if(length(files) == testedK){
+          break
+        }
+    }
+     
     cmd = paste0("python /opt/biotools/bin/fastStructure/chooseK.py --input=",filteredFile,"-fastStr ")
     ModelComplexity=system(cmd, intern=TRUE)
     titre = paste0("maxLD=",maxLD," minMAF=",globalminMAF, " maxMissing=",globalmaxMissing," ", paste0(ModelComplexity, collapse=" ") )

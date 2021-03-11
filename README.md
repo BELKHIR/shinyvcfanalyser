@@ -21,7 +21,7 @@ To get the ordered list of samples in your vcf/bcv :
 
 ``` bcftools query -l my.vcf.gz ```
 
-The popmap must be atext file of two columns separated by a tabulation. The first column is the sample names and the second is the population name.
+The popmap must be a text file of two columns separated by a tabulation. The first column is the sample names and the second is the population names.
 
 
 ## Download or unzip the app files
