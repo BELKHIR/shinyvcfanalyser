@@ -29,6 +29,7 @@ FROM rocker/r-ver:4.0.3
     #RUN cd /tmp/ && wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py && rm -f get-pip.py
     #RUN curl https://bootstrap.pypa.io/2.7/get-pip.py --output get-pip.py && python get-pip.py && rm -f get-pip.py
     RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && python get-pip.py && rm -f get-pip.py
+	RUN apt-get update
 	RUN apt-get install -y  autotools-dev automake cmake grep sed dpkg fuse zip build-essential pkg-config bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 mercurial subversion zlib1g-dev libncurses5-dev libncursesw5-dev
 	RUN apt-get install -y  libgsl-dev  python-tk
 	RUN apt-get update
@@ -214,6 +215,7 @@ ADD www /sagApp/www
 RUN rm -f  /opt/biotools/bin/bcftools-1.9.tar
 RUN rm -rf /opt/biotools/dadi
 RUN rm -rf /opt/biotools/moments
+RUN pip3 install demes
 
 #use a local copy of pophelper
 # ADD pophelper /tmp/pophelper
