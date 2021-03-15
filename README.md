@@ -24,7 +24,22 @@ To get the ordered list of samples in your vcf/bcv :
 The popmap must be a text file of two columns separated by a tabulation. The first column is the sample names and the second is the population names.
 
 
-## Download or unzip the app files
+ShinyVcfAnalyser can is available as a docker image that is available in dockerhub or by cloning this repository and building a new image.
+
+## If docker is not installed check howto do here : 
+
+  https://docs.docker.com/engine/install/
+
+
+## Use of the image on docker Hub
+
+Pull the last available version from Docker Hub registry :
+
+```docker pull mbbteam/shinyvcfanalyser ```
+
+If you choose this solution, you have to refer to the image as mbbteam/shinyvcfanalyser in the commands that follow.
+
+## Download or unzip files to build a new image
 
  `git clone https://github.com/BELKHIR/shinyvcfanalyser`
  
@@ -32,11 +47,10 @@ The popmap must be a text file of two columns separated by a tabulation. The fir
  
  `cd shinyvcfanalyser`
 
-## If docker is not installed check howto do here : 
-  https://docs.docker.com/engine/install/
+
 
 ## Build the Docker image (to be done only once)
-`sudo docker build -t shinyvcfmultisampleanalyser .`
+`sudo docker build -t shinyvcfanalyser .`
 
 ## Now you have to bind directories from your system to directories inside the container
   
@@ -48,7 +62,7 @@ e.g. I want to share my files in /home/khalid/projets/workspace/testData and get
   
 ## To run with binding and mapping host tcp port 9090 to port 3838 in the container (named vcfmultisample)
 
-`sudo docker run --rm -d -p 9090:3838 $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser`
+`sudo docker run --rm -d -p 9090:3838 $DOCK_VOLUME --name vcfmultisample shinyvcfanalyser`
 
 The app is now accessible via a browser at : http://127.0.0.1:9090
 
@@ -64,7 +78,7 @@ Some binaries are installed in /opt/biotools
 
 ## To run a new container only in command line :
 
-`sudo docker run --rm -i -t $DOCK_VOLUME --name vcfmultisample shinyvcfmultisampleanalyser /bin/bash `  
+`sudo docker run --rm -i -t $DOCK_VOLUME --name vcfmultisample shinyvcfanalyser /bin/bash `  
 
 
 ## Generate a report from command line
