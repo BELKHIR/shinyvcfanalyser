@@ -453,6 +453,9 @@ selectedData <- reactive({
     #calc IBS over all SNP (this can be used for correlation with missingness over widows)
     ibs <<- snpgdsIBS(genofile,  snp.id=NULL, num.thread=8, autosome.only=FALSE)
     # dendrogram on IBS values:
+    #hclust hangs with na values in distance matix
+    ibs$ibs[is.na(ibs$ibs)] <- 0
+
     ibsDendro <<- snpgdsHCluster(ibs, need.mat = FALSE)$hclust
 
     #il faut upgrader la version rocker/r-ver à 4 pour avoir des versions plus recentes de SeqArray SNPRelate ...
@@ -568,6 +571,9 @@ observeEvent(input$applyFilter,{
     
       #calc IBS over all SNP (this can be used for correlation with missingness over widows)
       ibs <<- snpgdsIBS(genofile,  snp.id=NULL, num.thread=8, autosome.only=FALSE)
+      #hclust hangs with na values in distance matix
+      ibs$ibs[is.na(ibs$ibs)] <- 0
+
       # dendrogram on IBS values:
       ibsDendro <<- snpgdsHCluster(ibs, need.mat = FALSE)$hclust
       seqClose(genofile)
@@ -1272,6 +1278,8 @@ output$missingPlot <- renderPlot({
     res = is.na(geno_matrix[i,]) + is.na(geno_matrix[j,])
     nonmissings = sum(res == 0)
     onlyonemissing  = sum(res == 1)
+    #in cases where the two samples are missing for all snp
+    if (onlyonemissing + nonmissings == 0) return(0)
     return(onlyonemissing / (onlyonemissing + nonmissings))
   }
   
@@ -1503,6 +1511,9 @@ ibsRun <- eventReactive(input$runibs,{
     genofile <- seqOpen(gds_file)
     
     ibs  <- snpgdsIBS(genofile,  snp.id=NULL,  num.thread=8, verbose=TRUE, autosome.only=FALSE)
+     #hclust hangs with na values in distance matix
+    ibs$ibs[is.na(ibs$ibs)] <- 0
+
     ibs.hc <- snpgdsHCluster(ibs)
 
     colnames(ibs$ibs) = ibs$sample.id
