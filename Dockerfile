@@ -114,17 +114,24 @@ RUN git clone https://github.com/vcftools/vcftools.git \
 
 	
 	
-    RUN pip install Cython==0.27.3
-    RUN pip install numpy
-    RUN pip install scipy
-    RUN pip install matplotlib
-    RUN apt-get install -y python-dev
-    RUN cd /opt/biotools/bin \
-    &&  git clone https://github.com/rajanil/fastStructure \
-    &&  cd /opt/biotools/bin/fastStructure/vars \
-    &&  python setup.py build_ext -f --inplace \
-    &&  cd /opt/biotools/bin/fastStructure \
-    &&  python setup.py build_ext -f  --inplace
+    RUN wget http://gnu.mirror.vexxhost.com/gsl/gsl-2.4.tar.gz && tar -zxvf gsl-2.4.tar.gz \
+    && cd gsl-2.4 \
+    && ./configure \
+    && make \
+    && make install \
+    && cd .. \
+    && rm -R gsl-2.4.tar.gz gsl-2.4 \
+    && cd /opt/biotools/bin  \
+    && git clone https://github.com/jashapiro/fastStructure.git  \
+    && cd /opt/biotools/bin/fastStructure && git checkout py3  \
+    && cd /opt/biotools/bin/fastStructure/vars  \
+    && python3 setup.py build_ext -f --inplace  \
+    && cd /opt/biotools/bin/fastStructure  \
+    && python3 setup.py build_ext -f  --inplace  \
+    && sed -i '2iimport matplotlib as mpl' /opt/biotools/bin/fastStructure/distruct.py \
+    && sed -i '3impl.use(\"svg\")' /opt/biotools/bin/fastStructure/distruct.py  \
+    && echo export 'PATH=/opt/biotools/bin/fastStructure:$PATH' >> /etc/environment \
+    && Rscript -e "devtools::install_github('royfrancis/pophelper', Ncpus=8, upgrade ='never')" 
 
  RUN sed -i '2iimport matplotlib as mpl' /opt/biotools/bin/fastStructure/distruct.py
  RUN sed -i '3impl.use("svg")' /opt/biotools/bin/fastStructure/distruct.py
@@ -174,11 +181,12 @@ RUN Rscript -e 'install.packages("reticulate",dependencies=T,Ncpus=8, repos="htt
 RUN Rscript -e 'install.packages("shinyalert",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 
 RUN pip3 install cython
+RUN pip3 install demes
 RUN cd /opt/biotools && git clone https://bitbucket.org/simongravel/moments.git 
 ADD local_scipy_dual_anneal.py /opt/biotools/moments/moments
 
 ADD moments_inference_dualanneal.py /opt/biotools/moments/moments
-RUN cd /opt/biotools/moments && python3 setup.py install 
+RUN cd /opt/biotools/moments && python3 setup.py build_ext -i && python3 setup.py install 
 
 RUN Rscript -e 'remotes::install_github("yonicd/snapper") '
 RUN R --slave -e "install.packages(c('webshot', 'kableExtra','pander'));webshot::install_phantomjs()" 
@@ -191,7 +199,8 @@ RUN Rscript -e "devtools::install_github('royfrancis/pophelper', Ncpus=8, upgrad
 RUN Rscript -e 'install.packages("pheatmap",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 
 RUN apt-get install libxt-dev
-RUN Rscript -e 'library("devtools");install_github("jokergoo/ComplexHeatmap", Ncpus=8)'
+RUN Rscript -e 'install.packages("remotes"); remotes::install_github("jokergoo/circlize", Ncpus=8)';
+RUN Rscript -e 'remotes::remotes::install_github("jokergoo/ComplexHeatmap", Ncpus=8)'
 RUN Rscript -e 'install.packages("shinyWidgets",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 RUN Rscript -e 'install.packages("patchwork",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 RUN Rscript -e 'install.packages("echarts4r",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
