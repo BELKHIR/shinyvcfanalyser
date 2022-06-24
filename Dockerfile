@@ -1,5 +1,5 @@
 #FROM rocker/r-ver:3.6.2
-FROM rocker/r-ver:4.0.3
+FROM rocker/r-ver:4.1.0
 	ENV PATH /opt/biotools/bin:$PATH
 	ENV ROOTSYS /opt/biotools/root
 	ENV LD_LIBRARY_PATH '$LD_LIBRARY_PATH:$ROOTSYS/lib'
@@ -112,16 +112,19 @@ RUN git clone https://github.com/vcftools/vcftools.git \
 	RUN	mkdir /results
 	RUN	mkdir /references
 
-	
-	
+	RUN apt-get update && apt-get install -y python3
+    RUN apt-get install -y python3-pip  python3-scipy python3-matplotlib
+	RUN pip3 install numpy --upgrade
+    RUN pip3 install cython
+
     RUN wget http://gnu.mirror.vexxhost.com/gsl/gsl-2.4.tar.gz && tar -zxvf gsl-2.4.tar.gz \
     && cd gsl-2.4 \
     && ./configure \
     && make \
     && make install \
     && cd .. \
-    && rm -R gsl-2.4.tar.gz gsl-2.4 \
-    && cd /opt/biotools/bin  \
+    && rm -R gsl-2.4.tar.gz gsl-2.4 
+	RUN cd /opt/biotools/bin  \
     && git clone https://github.com/jashapiro/fastStructure.git  \
     && cd /opt/biotools/bin/fastStructure && git checkout py3  \
     && cd /opt/biotools/bin/fastStructure/vars  \
@@ -167,8 +170,7 @@ RUN sed -i 's|11/2.54|20/2.54|' /usr/local/bin/plot-vcfstats
 RUN sed -i 's|10/2.54|14/2.54|' /usr/local/bin/plot-vcfstats
 RUN sed -i 's|window_len/2|window_len//2|g' /usr/local/bin/plot-vcfstats
 
-RUN apt-get update && apt-get install -y python3
-RUN apt-get install -y python3-pip python3-numpy python3-scipy python3-matplotlib
+
 
 RUN cd /opt/biotools && git clone https://bitbucket.org/gutenkunstlab/dadi.git \
 && cd dadi && python3 setup.py install
@@ -180,7 +182,6 @@ RUN apt-get install -y python3-pandas
 RUN Rscript -e 'install.packages("reticulate",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 RUN Rscript -e 'install.packages("shinyalert",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 
-RUN pip3 install cython
 RUN pip3 install demes
 RUN cd /opt/biotools && git clone https://bitbucket.org/simongravel/moments.git 
 ADD local_scipy_dual_anneal.py /opt/biotools/moments/moments
@@ -199,15 +200,13 @@ RUN Rscript -e "devtools::install_github('royfrancis/pophelper', Ncpus=8, upgrad
 RUN Rscript -e 'install.packages("pheatmap",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 
 RUN apt-get install libxt-dev
-RUN Rscript -e 'install.packages("remotes"); remotes::install_github("jokergoo/circlize", Ncpus=8)';
-RUN Rscript -e 'remotes::remotes::install_github("jokergoo/ComplexHeatmap", Ncpus=8)'
+RUN Rscript -e 'remotes::install_github("jokergoo/circlize", Ncpus=8)';
+RUN Rscript -e 'remotes::install_github("jokergoo/ComplexHeatmap", Ncpus=8)'
 RUN Rscript -e 'install.packages("shinyWidgets",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 RUN Rscript -e 'install.packages("patchwork",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
 RUN Rscript -e 'install.packages("echarts4r",dependencies=T,Ncpus=8, repos="https://cloud.r-project.org/")'
-
-RUN Rscript -e 'options(download.file.method = "wget");library("devtools");install_github("jokergoo/ComplexHeatmap", upgrade="never")'
-RUN Rscript -e 'options(download.file.method = "wget");devtools::install_github("royfrancis/pophelper", Ncpus=8, upgrade ="never")'
-
+#in case precedent ggtree installation failure
+RUN Rscript -e 'install.packages("remotes"); remotes::install_github("YuLab-SMU/yulab.utils"); BiocManager::install("ggtree",Ncpus=8, clean=TRUE) '
 
 RUN pip3 install psutil
 RUN mkdir sagApp
