@@ -1,24 +1,24 @@
-SI	    Strict Isolation.
-SIexp	    Strict Isolation with exponential size changes.
-SI2N	    Strict Isolation with heterogeneous Ne (shared between populations).
-IM	    Isolation with Migration.
-IMexp	    Isolation with Migration with exponential size changes.
-IM2N	    Isolation with Migration with heterogeneous Ne (shared between populations).
-IM2M	    Isolation with Migration with heterogeneous Me (shared between populations).
-IM2M2P	    Isolation with Migration with heterogeneous Me (population-specific).
-IM2N2M	    Isolation with Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (shared between populations).
-IM2N2M2P	    Isolation with Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (population-specific).
-SC	    Secondary Contact.
-SCexp	    Secondary Contact with exponential size changes.
-SC2N	    Secondary Contact with heterogeneous Ne (shared between populations).
-SC2M	    Secondary Contact with heterogeneous Me (shared between populations).
-SC2M2P	    Secondary Contact with heterogeneous Me (population-specific).
-SC2N2M	    Secondary Contact with heterogeneous Ne (shared between populations) and heterogeneous Me (shared between populations).
-SC2N2M2P	    Secondary Contact with heterogeneous Ne (shared between populations) and heterogeneous Me (population-specific).
-AM	    Ancient Migration.
-AMexp	    Ancient Migration with exponential size changes.
-AM2N	    Ancient Migration with heterogeneous Ne (shared between populations).
-AM2M	    Ancient Migration with heterogeneous Me (shared between populations).
-AM2M2P	    Ancient Migration with heterogeneous Me (population-specific).
-AM2N2M	    Ancient Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (shared between populations).
-AM2N2M2P	    Ancient Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (population-specific).
+SI	Strict Isolation.
+SIexp	Strict Isolation with exponential size changes.
+SI2N	Strict Isolation with heterogeneous Ne (shared between populations).
+IM	Isolation with Migration.
+IMexp	Isolation with Migration with exponential size changes.
+IM2N	Isolation with Migration with heterogeneous Ne (shared between populations).
+IM2M	Isolation with Migration with heterogeneous Me (shared between populations).
+IM2M2P	Isolation with Migration with heterogeneous Me (population-specific).
+IM2N2M	Isolation with Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (shared between populations).
+IM2N2M2P	Isolation with Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (population-specific).
+SC	Secondary Contact.
+SCexp	Secondary Contact with exponential size changes.
+SC2N	Secondary Contact with heterogeneous Ne (shared between populations).
+SC2M	Secondary Contact with heterogeneous Me (shared between populations).
+SC2M2P	Secondary Contact with heterogeneous Me (population-specific).
+SC2N2M	Secondary Contact with heterogeneous Ne (shared between populations) and heterogeneous Me (shared between populations).
+SC2N2M2P	Secondary Contact with heterogeneous Ne (shared between populations) and heterogeneous Me (population-specific).
+AM	Ancient Migration.
+AMexp	Ancient Migration with exponential size changes.
+AM2N	Ancient Migration with heterogeneous Ne (shared between populations).
+AM2M	Ancient Migration with heterogeneous Me (shared between populations).
+AM2M2P	Ancient Migration with heterogeneous Me (population-specific).
+AM2N2M	Ancient Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (shared between populations).
+AM2N2M2P	Ancient Migration with heterogeneous Ne (shared between populations) and heterogeneous Me (population-specific).

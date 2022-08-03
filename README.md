@@ -17,14 +17,14 @@ Important :
 
 popmap file must list samples in the same order as in the vcf/bcf file !
 
-To get the ordered list of samples in your vcf/bcv :
+To get the ordered list of samples in your vcf/bcf :
 
 ``` bcftools query -l my.vcf.gz ```
 
 The popmap must be a text file of two columns separated by a tabulation. The first column is the sample names and the second is the population names.
 
 
-ShinyVcfAnalyser can is available as a docker image that is available in dockerhub or by cloning this repository and building a new image.
+ShinyVcfAnalyser is available as a docker image in dockerhub or by cloning this repository and building a new image.
 
 ## If docker is not installed check howto do here : 
 

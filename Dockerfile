@@ -124,7 +124,9 @@ RUN git clone https://github.com/vcftools/vcftools.git \
     && make install \
     && cd .. \
     && rm -R gsl-2.4.tar.gz gsl-2.4 
+	
 	RUN cd /opt/biotools/bin  \
+	&& pip3 uninstall cython; pip3 install Cython==0.27.3
     && git clone https://github.com/jashapiro/fastStructure.git  \
     && cd /opt/biotools/bin/fastStructure && git checkout py3  \
     && cd /opt/biotools/bin/fastStructure/vars  \
@@ -134,7 +136,9 @@ RUN git clone https://github.com/vcftools/vcftools.git \
     && sed -i '2iimport matplotlib as mpl' /opt/biotools/bin/fastStructure/distruct.py \
     && sed -i '3impl.use(\"svg\")' /opt/biotools/bin/fastStructure/distruct.py  \
     && echo export 'PATH=/opt/biotools/bin/fastStructure:$PATH' >> /etc/environment \
-    && Rscript -e "devtools::install_github('royfrancis/pophelper', Ncpus=8, upgrade ='never')" 
+    && Rscript -e "devtools::install_github('royfrancis/pophelper', Ncpus=8, upgrade ='never')" \
+	&& pip3 uninstall cython; pip3 install Cython
+
 
  RUN sed -i '2iimport matplotlib as mpl' /opt/biotools/bin/fastStructure/distruct.py
  RUN sed -i '3impl.use("svg")' /opt/biotools/bin/fastStructure/distruct.py
