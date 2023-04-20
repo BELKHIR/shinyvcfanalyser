@@ -44,7 +44,7 @@ library(shinyWidgets)
 
   dadi = import("dadi",convert = FALSE) 
   # dadiSpectrum = import("dadi.Spectrum_mod",convert = FALSE)
-  dadiMisc = import("dadi.Misc",convert = FALSE)
+  #dadiMisc = import("dadi.Misc",convert = FALSE)
   # source_python("dadimodels/dadiCustomDemographicModels.py")
 
   plt = import("matplotlib.pyplot")
@@ -509,6 +509,10 @@ popDeco <-reactive({
   names(choixPops) = names(popc)
   updateSelectInput(session, "scanfirstPop", label = NULL, choices = choixPops,selected = 1)
   updateSelectInput(session, "scansecondPop", label = NULL, choices = choixPops,selected = 2)
+  updateSelectInput(session, "firstPop", label = NULL, choices = choixPops,selected = 1)
+  updateSelectInput(session, "secondPop", label = NULL, choices = choixPops,selected = 2)
+  updateSelectInput(session, "firstPop1", label = NULL, choices = choixPops,selected = 1)
+  updateSelectInput(session, "secondPop1", label = NULL, choices = choixPops,selected = 2)
 
   popDeco=list(pop_color1=pop_color1, popc = popc, pop_code1= pop_code1)
 })
@@ -1672,12 +1676,13 @@ plotfastStructpopHelper <- eventReactive(input$runfastStructure, {
     print(filteredFile)
     tol = as.numeric(input$convergence)
     testedK = 0
+    #see  https://structure-threader.readthedocs.io/en/latest/
     for (K in isolate(input$K[1]):isolate(input$K[2] ) )
     {
       if (K < isolate(input$K[2]))
-       cmd = paste0("python /opt/biotools/bin/fastStructure/structure.py -K ",K," --tol=",tol ," --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr &")
+       cmd = paste0("~/.local/bin/fastStructure -K ",K," --tol=",tol ," --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr &")
       else 
-       cmd = paste0("python /opt/biotools/bin/fastStructure/structure.py -K ",K," --tol=",tol , " --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr ")
+       cmd = paste0(" ~/.local/bin/fastStructure -K ",K," --tol=",tol , " --prior=",isolate(input$Prior)," --cv ", input$fastcv," --input=",filteredFile," --output=",filteredFile,"-fastStr ")
       testedK = testedK +1
       system(cmd)
     }
@@ -1689,7 +1694,7 @@ plotfastStructpopHelper <- eventReactive(input$runfastStructure, {
         }
     }
      
-    cmd = paste0("python /opt/biotools/bin/fastStructure/chooseK.py --input=",filteredFile,"-fastStr ")
+    cmd = paste0("resudirname=$(dirname ",filteredFile,") && python3 ~/.local/lib/python3.10/site-packages/structure_threader/evanno/fastChooseK.py $resudirname $resudirname && cat $resudirname/chooseK.txt ")
     ModelComplexity=system(cmd, intern=TRUE)
     titre = paste0("maxLD=",maxLD," minMAF=",globalminMAF, " maxMissing=",globalmaxMissing," ", paste0(ModelComplexity, collapse=" ") )
 
