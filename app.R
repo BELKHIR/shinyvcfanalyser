@@ -1632,14 +1632,16 @@ fstRun <- eventReactive(input$runfst,{
     seqClose(genofile)
     }
 
-    return(list(fstpairs=fstpairs, minMAF=input$fstminMAF, maxMissing=input$fstmaxMissing ) ) 
+    return(list(fstpairs=fstpairs, minMAF=input$fstminMAF, maxMissing=input$fstmaxMissing, ficin=filteredFile ) ) 
 
 })
 
 output$Fstpairs = DT::renderDataTable({
   if (is.null(fstRun()) ) return(NULL)
+   write.table(as.data.frame(fstRun()$fstpairs), file=paste0(fstRun()$ficin,"_Fst.tsv"),quote = FALSE, sep = "\t", dec = ".", row.names = TRUE, col.names = TRUE)
 
    DT::datatable( as.data.frame(fstRun()$fstpairs), caption = paste0("Data filtered : minMAF=",fstRun()$minMAF," maxMissing=",fstRun()$maxMissing), options = list(pageLength = 30, searching = FALSE) )
+
 })
 
 output$treePlot <- renderPlot({
